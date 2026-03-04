@@ -23,28 +23,18 @@ public abstract class Repository<TEntity>
 
     public virtual void Update(TEntity entity)
     {
-        // _context.Set<TEntity>().Update(entity);
         _context.Set<TEntity>().Attach(entity);
         _context.Entry(entity).State = EntityState.Modified;
     }
 
-    /// <summary>
-    /// Hard delete entity
-    /// </summary>
-    /// <param name="entity"></param>
     public virtual void Remove(TEntity entity)
     {
         _context.Set<TEntity>().Remove(entity);
     }
 
-    /// <summary>
-    /// Soft delete entity
-    /// </summary>
-    /// <param name="entity"></param>
     public virtual void Delete(TEntity entity)
     {
         entity.DeletedAt = DateTime.Now;
-        // _context.Set<TEntity>().Update(entity);
         _context.Set<TEntity>().Attach(entity);
         _context.Entry(entity).State = EntityState.Modified;
     }

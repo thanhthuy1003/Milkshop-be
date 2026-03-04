@@ -35,7 +35,7 @@ public class PostService : IPostService
             return ResponseModel.BadRequest(ResponseConstants.NotFound("Người dùng"));
         }
 
-        if (author.RoleId == (int)RoleId.Customer)
+        if (author.RoleId == (int)RoleId.Buyer || author.RoleId == (int)RoleId.Seller)
         {
             return ResponseModel.BadRequest(ResponseConstants.NotEnoughPermission);
         }
@@ -49,7 +49,7 @@ public class PostService : IPostService
             AuthorId = authorId,
             MetaTitle = model.MetaTitle ?? model.Title,
             MetaDescription = model.MetaDescription ?? model.Content,
-            IsActive = false, // default is unpublished
+            IsActive = false,
             Thumbnail = model.Thumbnail
         };
         _postRepository.Add(post);
@@ -82,7 +82,7 @@ public class PostService : IPostService
 
     public async Task<ResponseModel> GetPostByIdAsync(Guid postId)
     {
-        var post = await  _postRepository.GetPostQuery(includeAuthor: true).FirstOrDefaultAsync(p => p.Id == postId);
+        var post = await _postRepository.GetPostQuery(includeAuthor: true).FirstOrDefaultAsync(p => p.Id == postId);
         if (post == null)
         {
             return ResponseModel.BadRequest(ResponseConstants.NotFound("bài viết"));
@@ -169,7 +169,6 @@ public class PostService : IPostService
             return ResponseModel.BadRequest(ResponseConstants.NotFound("người dùng"));
         }
 
-        // Only admin or actual author can update post
         if (user.RoleId != (int)RoleId.Admin && userId != post.AuthorId)
         {
             return ResponseModel.BadRequest(ResponseConstants.NotEnoughPermission);

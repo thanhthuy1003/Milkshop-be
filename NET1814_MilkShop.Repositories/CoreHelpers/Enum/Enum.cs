@@ -14,12 +14,13 @@ public enum RoleId
 {
     Admin = 1,
     Staff = 2,
-    Customer = 3,
+    Buyer = 3,
+    Seller = 4,
 }
 
 public enum ProductStatusId
 {
     Selling = 1,
-    Preordered = 2, //move out of product
+    Preordered = 2,
     OutOfStock = 3
 }

@@ -17,9 +17,11 @@ public sealed class AuthenticationRepository : Repository<User>, IAuthentication
     {
         var user = isCustomer
             ? await _query.Include(u => u.Role)
-                .FirstOrDefaultAsync(x => username.Equals(x.Username) && x.RoleId == (int)RoleId.Customer)
+                .FirstOrDefaultAsync(x => username.Equals(x.Username) &&
+                    (x.RoleId == (int)RoleId.Buyer || x.RoleId == (int)RoleId.Seller))
             : await _query.Include(u => u.Role)
-                .FirstOrDefaultAsync(x => username.Equals(x.Username) && x.RoleId != (int)RoleId.Customer);
+                .FirstOrDefaultAsync(x => username.Equals(x.Username) &&
+                    x.RoleId != (int)RoleId.Buyer && x.RoleId != (int)RoleId.Seller);
         if (user != null && BCrypt.Net.BCrypt.Verify(password, user.Password))
         {
             return user;

@@ -41,23 +41,19 @@ public sealed class AuthenticationService : IAuthenticationService
         _jwtTokenExtension = jwtTokenExtension;
     }
 
-    /// <summary>
-    /// Người dùng đăng ký tài khoản
-    /// </summary>
-    /// <param name="model"></param>
-    /// <returns></returns>
     public async Task<ResponseModel> SignUpAsync(SignUpModel model)
     {
-        var existingUser = await _userRepository.GetByUsernameAsync(model.Username, (int)RoleId.Customer);
+        var roleId = model.Role?.ToLower() == "seller"
+            ? (int)RoleId.Seller
+            : (int)RoleId.Buyer;
+
+        var existingUser = await _userRepository.GetByUsernameAsync(model.Username, roleId);
         if (existingUser != null)
         {
             return ResponseModel.BadRequest(ResponseConstants.Exist("Tên đăng nhập"));
         }
 
-        /*var IsCustomerExist = await _customerRepository.IsCustomerExistAsync(model.Email, model.PhoneNumber);*/
-        var isPhoneNumberExist = await _customerRepository.IsExistPhoneNumberAsync(
-            model.PhoneNumber
-        );
+        var isPhoneNumberExist = await _customerRepository.IsExistPhoneNumberAsync(model.PhoneNumber);
         if (isPhoneNumberExist)
         {
             return ResponseModel.BadRequest(ResponseConstants.Exist("Số điện thoại"));
@@ -68,14 +64,6 @@ public sealed class AuthenticationService : IAuthenticationService
         {
             return ResponseModel.BadRequest(ResponseConstants.Exist("Email"));
         }
-        /*if (IsCustomerExist)
-        {
-            return new ResponseModel
-            {
-                Status = "Error",
-                Message = "Email hoặc số điện thoại đã tồn tại trong hệ thống!"
-            };
-        }*/
 
         string token = _jwtTokenExtension.CreateVerifyCode();
         var user = new User
@@ -85,7 +73,7 @@ public sealed class AuthenticationService : IAuthenticationService
             FirstName = model.FirstName,
             LastName = model.LastName,
             Password = BCrypt.Net.BCrypt.HashPassword(model.Password),
-            RoleId = (int)RoleId.Customer,
+            RoleId = roleId,
             VerificationCode = token,
             IsActive = false,
         };
@@ -96,12 +84,12 @@ public sealed class AuthenticationService : IAuthenticationService
             PhoneNumber = model.PhoneNumber
         };
         _userRepository.Add(user);
-        _customerRepository.Add(customer); // Khong nen add vao customer khi chua verify
+        _customerRepository.Add(customer);
         var result = await _unitOfWork.SaveChangesAsync();
-        var jwtVeriryToken = _jwtTokenExtension.CreateJwtToken(user, TokenType.Authentication);
+        var jwtVerifyToken = _jwtTokenExtension.CreateJwtToken(user, TokenType.Authentication);
         if (result > 0)
         {
-            await _emailService.SendVerificationEmailAsync(model.Email, jwtVeriryToken, model.FirstName);
+            await _emailService.SendVerificationEmailAsync(model.Email, jwtVerifyToken, model.FirstName);
             return ResponseModel.Success(ResponseConstants.Register(true), null);
         }
 
@@ -115,20 +103,16 @@ public sealed class AuthenticationService : IAuthenticationService
             model.Password,
             isCustomer: true
         );
-        if (existingUser != null && existingUser.RoleId == (int)RoleId.Customer)
-            //Only customer can login, others will say wrong username or password
+        if (existingUser != null &&
+            (existingUser.RoleId == (int)RoleId.Buyer || existingUser.RoleId == (int)RoleId.Seller))
         {
-            //check if user is banned
             if (existingUser.IsBanned)
             {
                 return ResponseModel.BadRequest(ResponseConstants.Banned);
             }
 
             var token = _jwtTokenExtension.CreateJwtToken(existingUser, TokenType.Access);
-            var refreshToken = _jwtTokenExtension.CreateJwtToken(
-                existingUser,
-                TokenType.Refresh
-            );
+            var refreshToken = _jwtTokenExtension.CreateJwtToken(existingUser, TokenType.Refresh);
             var responseLogin = new ResponseLoginModel
             {
                 UserID = existingUser.Id.ToString(),
@@ -193,9 +177,7 @@ public sealed class AuthenticationService : IAuthenticationService
         return ResponseModel.BadRequest(ResponseConstants.WrongCode);
     }
 
-    public async Task<ResponseModel> ForgotPasswordAsync(
-        ForgotPasswordModel request
-    )
+    public async Task<ResponseModel> ForgotPasswordAsync(ForgotPasswordModel request)
     {
         var customer = await _customerRepository.GetByEmailAsync(request.Email);
         if (customer == null) return ResponseModel.BadRequest(ResponseConstants.NotFound("Email"));
@@ -204,12 +186,8 @@ public sealed class AuthenticationService : IAuthenticationService
         _userRepository.Update(customer.User);
         var result = await _unitOfWork.SaveChangesAsync();
         if (result <= 0) return ResponseModel.Error("Có lỗi xảy ra trong quá trình reset mật khẩu");
-        var verifyToken = _jwtTokenExtension.CreateJwtToken(
-            customer.User,
-            TokenType.Reset
-        );
-        await _emailService.SendPasswordResetEmailAsync(customer.Email, verifyToken,
-            customer.User.FirstName); //Có link token ở header nhưng phải tự nhập ở swagger để change pass
+        var verifyToken = _jwtTokenExtension.CreateJwtToken(customer.User, TokenType.Reset);
+        await _emailService.SendPasswordResetEmailAsync(customer.Email, verifyToken, customer.User.FirstName);
         return ResponseModel.Success(ResponseConstants.ResetPasswordLink, null);
     }
 
@@ -288,12 +266,8 @@ public sealed class AuthenticationService : IAuthenticationService
             var result = await _unitOfWork.SaveChangesAsync();
             if (result > 0)
             {
-                var verifyToken = _jwtTokenExtension.CreateJwtToken(
-                    customer.User,
-                    TokenType.Authentication
-                );
-                await _emailService.SendVerificationEmailAsync(customer.Email, verifyToken,
-                    customer.User.FirstName); //Có link token ở header nhưng phải tự nhập ở swagger để change pass
+                var verifyToken = _jwtTokenExtension.CreateJwtToken(customer.User, TokenType.Authentication);
+                await _emailService.SendVerificationEmailAsync(customer.Email, verifyToken, customer.User.FirstName);
                 return ResponseModel.Success(ResponseConstants.ActivateAccountLink, null);
             }
         }
@@ -308,20 +282,17 @@ public sealed class AuthenticationService : IAuthenticationService
             model.Password,
             isCustomer: false
         );
-        if (existingUser != null && existingUser.RoleId != (int)RoleId.Customer)
-            //Only admin,staff can login others will response wrong username or password
+        if (existingUser != null &&
+            existingUser.RoleId != (int)RoleId.Buyer &&
+            existingUser.RoleId != (int)RoleId.Seller)
         {
-            //check if user is banned
             if (existingUser.IsBanned)
             {
                 return ResponseModel.BadRequest(ResponseConstants.Banned);
             }
 
             var token = _jwtTokenExtension.CreateJwtToken(existingUser, TokenType.Access);
-            var refreshToken = _jwtTokenExtension.CreateJwtToken(
-                existingUser,
-                TokenType.Refresh
-            );
+            var refreshToken = _jwtTokenExtension.CreateJwtToken(existingUser, TokenType.Refresh);
             var responseLogin = new ResponseLoginModel
             {
                 UserID = existingUser.Id.ToString(),
@@ -351,7 +322,6 @@ public sealed class AuthenticationService : IAuthenticationService
         var firebase = JsonConvert.DeserializeObject<FirebaseModel>(decodedToken.Claims["firebase"].ToString()!);
         var googleId = firebase!.Identities.GoogleId[0];
         var isVerifyEmail = decodedToken.Claims["email_verified"].ToString();
-        // kiểm tra email đã đc google verify ?
         if (isVerifyEmail == "False")
         {
             return ResponseModel.BadRequest("Tài khoản Google chưa được xác thực email");
@@ -361,7 +331,7 @@ public sealed class AuthenticationService : IAuthenticationService
         var userEmail = decodedToken.Claims["email"].ToString();
         var isExistUser = await _customerRepository.GetByEmailAsync(userEmail!);
         string message = "";
-        if (isExistUser == null) // nếu chưa tồn tại người dùng thì tự động đăng ký
+        if (isExistUser == null)
         {
             var userFullName = decodedToken.Claims["name"].ToString()!.Trim();
             var userFirstName = userFullName.Contains(' ')
@@ -371,14 +341,12 @@ public sealed class AuthenticationService : IAuthenticationService
                 ? userFullName.Substring(userFullName.IndexOf(' ')).Trim()
                 : userFullName.Trim();
             var username = Guid.NewGuid().ToString();
-            //check trùng username
-            while (await _userRepository.GetByUsernameAsync(username, 3) != null)
+            while (await _userRepository.GetByUsernameAsync(username, (int)RoleId.Buyer) != null)
             {
                 username = Guid.NewGuid().ToString();
             }
 
             var password = Guid.NewGuid().ToString();
-            // tạo tài khoản mới
             var user = new User
             {
                 Id = Guid.NewGuid(),
@@ -386,11 +354,11 @@ public sealed class AuthenticationService : IAuthenticationService
                 Password = BCrypt.Net.BCrypt.HashPassword(password),
                 FirstName = userFirstName,
                 LastName = userLastName,
-                RoleId = (int)RoleId.Customer,
+                RoleId = (int)RoleId.Buyer,
                 IsActive = true
             };
 
-            var pictureUrl = decodedToken.Claims["picture"].ToString(); // lấy ảnh đại diện từ google
+            var pictureUrl = decodedToken.Claims["picture"].ToString();
             var customerGoogle = new Customer
             {
                 UserId = user.Id,
@@ -401,11 +369,10 @@ public sealed class AuthenticationService : IAuthenticationService
             tempUser = user;
             _userRepository.Add(user);
             _customerRepository.Add(customerGoogle);
-            // gửi email username và password cho người dùng
             await _emailService.SendGoogleAccountAsync(userEmail!, userFullName, username, password);
             message = "\nTên đăng nhập và mật khẩu đã được gửi vào email của bạn";
         }
-        else // đã tồn tại gmail trong hệ thống
+        else
         {
             tempUser = isExistUser.User;
             if (isExistUser.User.IsBanned)
@@ -413,10 +380,8 @@ public sealed class AuthenticationService : IAuthenticationService
                 return ResponseModel.BadRequest(ResponseConstants.Banned);
             }
 
-            // kiểm tra có ggid chưa ?
             if (string.IsNullOrEmpty(isExistUser.GoogleId))
             {
-                // kiểm tra isactive
                 if (!isExistUser.User.IsActive)
                 {
                     isExistUser.User.IsActive = true;
@@ -434,20 +399,16 @@ public sealed class AuthenticationService : IAuthenticationService
             }
         }
 
-
         await _unitOfWork.SaveChangesAsync();
         var jwtToken = _jwtTokenExtension.CreateJwtToken(tempUser, TokenType.Access);
-        var refreshToken = _jwtTokenExtension.CreateJwtToken(
-            tempUser,
-            TokenType.Refresh
-        );
+        var refreshToken = _jwtTokenExtension.CreateJwtToken(tempUser, TokenType.Refresh);
         var responseLogin = new ResponseLoginModel
         {
             UserID = tempUser.Id.ToString(),
             Username = tempUser.Username,
             FirstName = tempUser.FirstName,
             LastName = tempUser.LastName,
-            Role = RoleId.Customer.ToString(),
+            Role = RoleId.Buyer.ToString(),
             AccessToken = jwtToken,
             RefreshToken = refreshToken,
             IsActive = tempUser.IsActive,

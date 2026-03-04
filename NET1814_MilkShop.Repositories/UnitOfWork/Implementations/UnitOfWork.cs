@@ -18,8 +18,6 @@ public class UnitOfWork : IUnitOfWork
     public async Task<int> SaveChangesAsync()
     {
         int result;
-
-        // Wrap the entire save process in a transaction
         await using var dbContextTransaction = await _context.Database.BeginTransactionAsync();
         try
         {
@@ -29,27 +27,16 @@ public class UnitOfWork : IUnitOfWork
         }
         catch (Exception)
         {
-            //Log Exception Handling message
             result = -1;
             await dbContextTransaction.RollbackAsync();
         }
 
         return result;
-        //try
-        //{
-        //    UpdateAuditableEntities();
-        //    return await _context.SaveChangesAsync();
-        //}
-        //catch (Exception ex)
-        //{
-        //    throw new Exception("An error occurred while saving changes", ex);
-        //}
     }
 
     private void UpdateAuditableEntities()
     {
-        var entries =
-            _context.ChangeTracker.Entries<IAuditableEntity>();
+        var entries = _context.ChangeTracker.Entries<IAuditableEntity>();
 
         foreach (var entityEntry in entries)
         {

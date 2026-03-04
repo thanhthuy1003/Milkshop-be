@@ -38,6 +38,8 @@ public class AppDbContext : DbContext
     public virtual DbSet<Voucher> Vouchers { get; set; }
     public virtual DbSet<Report> Reports { get; set; }
     public virtual DbSet<ReportType> ReportTypes { get; set; }
+    public virtual DbSet<Conversation> Conversations { get; set; }
+    public virtual DbSet<Message> Messages { get; set; }
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
@@ -1551,6 +1553,115 @@ public class AppDbContext : DbContext
             b.Navigation("Customer");
 
             b.Navigation("Posts");
+        });
+
+        modelBuilder.Entity<Conversation>(b =>
+        {
+            b.Property<Guid>("Id")
+                .ValueGeneratedOnAdd()
+                .HasColumnType("uniqueidentifier");
+
+            b.Property<Guid>("BuyerId")
+                .HasColumnType("uniqueidentifier")
+                .HasColumnName("buyer_id");
+
+            b.Property<Guid>("SellerId")
+                .HasColumnType("uniqueidentifier")
+                .HasColumnName("seller_id");
+
+            b.Property<DateTime>("CreatedAt")
+                .HasColumnType("datetime2")
+                .HasColumnName("created_at");
+
+            b.Property<DateTime?>("ModifiedAt")
+                .HasColumnType("datetime2")
+                .HasColumnName("modified_at");
+
+            b.Property<DateTime?>("DeletedAt")
+                .HasColumnType("datetime2")
+                .HasColumnName("deleted_at");
+
+            b.HasKey("Id");
+
+            b.HasIndex("BuyerId");
+            b.HasIndex("SellerId");
+
+            b.HasOne("NET1814_MilkShop.Repositories.Data.Entities.User", "Buyer")
+                .WithMany()
+                .HasForeignKey("BuyerId")
+                .OnDelete(DeleteBehavior.Restrict)
+                .IsRequired();
+
+            b.HasOne("NET1814_MilkShop.Repositories.Data.Entities.User", "Seller")
+                .WithMany()
+                .HasForeignKey("SellerId")
+                .OnDelete(DeleteBehavior.Restrict)
+                .IsRequired();
+
+            b.Navigation("Buyer");
+            b.Navigation("Seller");
+            b.Navigation("Messages");
+
+            b.ToTable("conversations");
+        });
+
+        modelBuilder.Entity<Message>(b =>
+        {
+            b.Property<Guid>("Id")
+                .ValueGeneratedOnAdd()
+                .HasColumnType("uniqueidentifier");
+
+            b.Property<Guid>("ConversationId")
+                .HasColumnType("uniqueidentifier")
+                .HasColumnName("conversation_id");
+
+            b.Property<Guid>("SenderId")
+                .HasColumnType("uniqueidentifier")
+                .HasColumnName("sender_id");
+
+            b.Property<string>("Content")
+                .IsRequired()
+                .HasColumnType("nvarchar(max)")
+                .HasColumnName("content");
+
+            b.Property<bool>("IsRead")
+                .HasColumnType("bit")
+                .HasColumnName("is_read")
+                .HasDefaultValue(false);
+
+            b.Property<DateTime>("CreatedAt")
+                .HasColumnType("datetime2")
+                .HasColumnName("created_at");
+
+            b.Property<DateTime?>("ModifiedAt")
+                .HasColumnType("datetime2")
+                .HasColumnName("modified_at");
+
+            b.Property<DateTime?>("DeletedAt")
+                .HasColumnType("datetime2")
+                .HasColumnName("deleted_at");
+
+            b.HasKey("Id");
+
+            b.HasIndex("ConversationId");
+            b.HasIndex("SenderId");
+
+            b.HasOne("NET1814_MilkShop.Repositories.Data.Entities.Conversation", "Conversation")
+                .WithMany("Messages")
+                .HasForeignKey("ConversationId")
+                .OnDelete(DeleteBehavior.Cascade)
+                .IsRequired();
+
+            b.HasOne("NET1814_MilkShop.Repositories.Data.Entities.User", "Sender")
+                .WithMany()
+                .HasForeignKey("SenderId")
+                .OnDelete(DeleteBehavior.Restrict)
+                .IsRequired();
+
+            b.Navigation("Conversation");
+            b.Navigation("Sender");
+
+            b.ToTable("messages");
         });
     }
 }

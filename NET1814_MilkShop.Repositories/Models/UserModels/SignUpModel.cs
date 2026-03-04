@@ -17,8 +17,6 @@ public class SignUpModel
 
     [Required(ErrorMessage = "Phone number is required!")]
     [DataType(DataType.PhoneNumber, ErrorMessage = "Invalid Phone Number!")]
-    // [RegularExpression(@"^(0|\+84)(3|5|7|8|9)\d{8}$", ErrorMessage = "Invalid Phone Number!")]
-    // new regex
     [RegularExpression(PhoneNumberRegex.Pattern, ErrorMessage = "Invalid Phone Number!")]
     public string PhoneNumber { get; set; } = null!;
 
@@ -37,4 +35,6 @@ public class SignUpModel
     [DataType(DataType.Password)]
     [Compare("Password", ErrorMessage = "Password and confirmation does not match!")]
     public string ConfirmPassword { get; set; } = null!;
+
+    public string Role { get; set; } = "buyer";
 }

@@ -20,14 +20,6 @@ public class CartController : Controller
         _cartService = serviceProvider.GetRequiredService<ICartService>();
     }
 
-    /// <summary>
-    /// Chặn nếu tài khoản chưa kích hoạt hoặc bị khóa
-    /// <para>Có thể search theo name, sort theo price</para>
-    /// <para>Apply voucher (nếu có) -> apply point (nếu có)</para>
-    /// </summary>
-    /// <param name="userId"></param>
-    /// <param name="model"></param>
-    /// <returns></returns>
     [HttpGet]
     [Authorize(AuthenticationSchemes = "Access", Roles = "3")]
     [ServiceFilter(typeof(UserExistsFilter))]
@@ -45,21 +37,11 @@ public class CartController : Controller
         return ResponseExtension.Result(response);
     }
 
-    /// <summary>
-    /// Chặn các sp chưa active, out of stock, preorder
-    /// <para>Chặn số lượng mua vượt quá số lượng còn lại</para>
-    /// </summary>
-    /// <param name="userId"></param>
-    /// <param name="model"></param>
-    /// <returns></returns>
     [HttpPost]
     [Authorize(AuthenticationSchemes = "Access", Roles = "3")]
     [ServiceFilter(typeof(UserExistsFilter))]
     [Route("api/user/{userId}/cart")]
-    public async Task<IActionResult> AddToCartAsync(
-        Guid userId,
-        [FromBody] AddToCartModel model
-    )
+    public async Task<IActionResult> AddToCartAsync(Guid userId, [FromBody] AddToCartModel model)
     {
         var current = (HttpContext.Items["UserId"] as Guid?)!.Value;
         if (current != userId)
@@ -72,12 +54,6 @@ public class CartController : Controller
         return ResponseExtension.Result(response);
     }
 
-    /// <summary>
-    /// Cập nhật giỏ hàng, loại bỏ các sp không hợp lệ, preorder, out of stock
-    /// <para>Nếu số lượng tồn ít hơn, cập nhật số lượng mua</para>
-    /// </summary>
-    /// <param name="userId"></param>
-    /// <returns></returns>
     [HttpPut]
     [Authorize(AuthenticationSchemes = "Access", Roles = "3")]
     [ServiceFilter(typeof(UserExistsFilter))]
@@ -95,11 +71,6 @@ public class CartController : Controller
         return ResponseExtension.Result(response);
     }
 
-    /// <summary>
-    /// Hard delete all items in cart
-    /// </summary>
-    /// <param name="userId"></param>
-    /// <returns></returns>
     [HttpDelete]
     [Authorize(AuthenticationSchemes = "Access", Roles = "3")]
     [Route("api/user/{userId}/cart")]
@@ -115,22 +86,12 @@ public class CartController : Controller
         var response = await _cartService.ClearCartAsync(userId);
         return ResponseExtension.Result(response);
     }
-    /// <summary>
-    /// Chặn nếu vượt quá số lượng tồn
-    /// </summary>
-    /// <param name="userId"></param>
-    /// <param name="productId"></param>
-    /// <param name="model"></param>
-    /// <returns></returns>
+
     [HttpPatch]
     [Authorize(AuthenticationSchemes = "Access", Roles = "3")]
     [ServiceFilter(typeof(UserExistsFilter))]
     [Route("api/user/{userId}/cart/{productId}")]
-    public async Task<IActionResult> UpdateCartItemAsync(
-        Guid userId,
-        Guid productId,
-        [FromBody] UpdateCartItemModel model
-    )
+    public async Task<IActionResult> UpdateCartItemAsync(Guid userId, Guid productId, [FromBody] UpdateCartItemModel model)
     {
         var current = (HttpContext.Items["UserId"] as Guid?)!.Value;
         if (current != userId)
@@ -143,13 +104,6 @@ public class CartController : Controller
         return ResponseExtension.Result(response);
     }
 
-    /// <summary>
-    /// Hard delete item from cart
-    /// <para>Chặn nếu không tồn tại item trong cart</para>
-    /// </summary>
-    /// <param name="userId"></param>
-    /// <param name="productId"></param>
-    /// <returns></returns>
     [HttpDelete]
     [Authorize(AuthenticationSchemes = "Access", Roles = "3")]
     [ServiceFilter(typeof(UserExistsFilter))]

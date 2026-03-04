@@ -89,11 +89,8 @@ public class Startup
             );
         }
 
-        //Add Dependency Injection
         AddDI(services);
-        //Add Infrastructure BackgroundJob
         QuartzExtenstionHosting.AddQuartzBackgroundJobs(services);
-        //Add Firebase
         try
         {
             FirebaseApp.Create(new AppOptions
@@ -105,37 +102,18 @@ public class Startup
         {
             Console.WriteLine($"[WARNING] Firebase initialization failed: {ex.Message}. Continuing without Firebase.");
         }
-        //Add Email Setting
-        services.Configure<EmailSettingModel>(
-            _configuration
-                .GetSection("EmailSettings")); //fix EmailSetting thanh EmailSettings ngồi mò gần 2 tiếng :D
-        //Add Database
+        services.Configure<EmailSettingModel>(_configuration.GetSection("EmailSettings"));
         services.AddDbContext<AppDbContext>(options => options.UseSqlServer(connectionString));
-        //Add HttpClient
         services.AddHttpClient();
-        //Add Exception Handler
         services.AddExceptionHandler<ExceptionLoggingHandler>();
         services.AddExceptionHandler<GlobalExceptionHandler>();
-        //Add Cors
         services.AddCors(options =>
         {
-            /*services.AddPolicy(
-                "DefaultPolicy",
-                builder =>
-                {
-                    //cho nay de domain web cua minh
-                    builder
-                        .WithOrigins("https://localhost:5000", "http://localhost:5001") // Allow only these origins
-                        .WithMethods("GET", "POST", "PUT", "DELETE") // Allow only these methods
-                        .AllowAnyHeader();
-                }
-            );*/
             options.AddPolicy(
                 "AllowAll",
                 builder => { builder.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader(); }
             );
         });
-        //Add Authentication
         services
             .AddAuthentication()
             .AddJwtBearer(
@@ -199,10 +177,9 @@ public class Startup
         }
 
         app.UseRouting();
-        app.UseCors("AllowAll"); //luon dat truoc app.UseAuthorization()
+        app.UseCors("AllowAll");
         app.UseAuthorization();
         app.UseExceptionHandler(_ => { });
-        // ko biet sao cai nay no keu violate ASP0014, keu map route truc tiep trong api luon
         app.UseEndpoints(endpoint =>
         {
             endpoint.MapControllerRoute(
@@ -288,9 +265,12 @@ public class Startup
         services.AddScoped<IPaymentService, PaymentService>();
 
         services.AddScoped<IShippingService, ShippingService>();
-        //Add Extensions
+
+        services.AddScoped<IConversationRepository, ConversationRepository>();
+        services.AddScoped<IMessageRepository, MessageRepository>();
+        services.AddScoped<IConversationService, ConversationService>();
+
         services.AddScoped<IJwtTokenExtension, JwtTokenExtension>();
-        //Add Filters
         services.AddScoped<UserExistsFilter>();
     }
 }
