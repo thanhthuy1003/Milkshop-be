@@ -40,18 +40,15 @@ public class ReportService : IReportService
         var query = _reportRepository.GetReportQuery()
             .Include(x => x.Product)
             .Include(x => x.ReportType).AsQueryable();
-        //filter
         query = query.Where(x => (model.CustomerId == Guid.Empty || x.CustomerId == model.CustomerId)
                                  && (model.ProductId == Guid.Empty || x.ProductId == model.ProductId)
                                  && (model.IsResolved == null || x.ResolvedBy != Guid.Empty)
                                  && (model.ReportTypeIds.Length == 0 || model.ReportTypeIds.Contains(x.ReportTypeId))
                                  && (string.IsNullOrEmpty(searchTerm) || x.ReportType.Name.Contains(searchTerm)));
-        //sort
         if ("desc".Equals(model.SortOrder?.ToLower()))
             query = query.OrderByDescending(GetSortProperty(model.SortColumn));
         else
             query = query.OrderBy(GetSortProperty(model.SortColumn));
-        // to model
         var reportModel = query.Select(x => new ReportModel
         {
             Id = x.Id,
@@ -64,7 +61,6 @@ public class ReportService : IReportService
             ResolvedBy = x.ResolvedBy,
             CreatedAt = x.CreatedAt
         });
-        //paging
         var reports = await PagedList<ReportModel>.CreateAsync(reportModel, model.Page, model.PageSize);
         return ResponseModel.Success(ResponseConstants.Get("báo cáo về sản phẩm", reports.TotalCount > 0), reports);
     }
@@ -104,7 +100,6 @@ public class ReportService : IReportService
             CreatedAt = report.CreatedAt,
             ModifiedAt = report.ModifiedAt
         };
-        // get resolver
         if (report.ResolvedBy != Guid.Empty)
         {
             var user = await _userRepository.GetByIdAsync(report.ResolvedBy);
@@ -130,7 +125,7 @@ public class ReportService : IReportService
         }
 
         var user = await _userRepository.GetByIdAsync(userId);
-        if (user is not { RoleId: (int)RoleId.Customer })
+        if (user is not { RoleId: (int)RoleId.Buyer })
         {
             return ResponseModel.BadRequest(ResponseConstants.NotFound("Khách hàng"));
         }
@@ -220,7 +215,6 @@ public class ReportService : IReportService
             Name = x.Name,
             Description = x.Description
         });
-        // paging
         var reportTypesList = await PagedList<ReportTypeModel>.CreateAsync(reportTypes, model.Page, model.PageSize);
         return ResponseModel.Success(ResponseConstants.Get("loại báo cáo", reportTypesList.TotalCount > 0),
             reportTypesList);
