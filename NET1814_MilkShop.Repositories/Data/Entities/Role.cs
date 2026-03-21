@@ -7,7 +7,7 @@ namespace NET1814_MilkShop.Repositories.Data.Entities;
 [Table("roles")]
 public class Role : IAuditableEntity
 {
-    [Key] public int Id { get; set; }
+    [Key][Column("id")] public int Id { get; set; }
 
     [Column("name", TypeName = "nvarchar(255)")]
     public string Name { get; set; } = null!;

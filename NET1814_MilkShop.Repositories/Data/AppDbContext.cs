@@ -1,6 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using NET1814_MilkShop.Repositories.Data.Entities;
+using NET1814_MilkShop.Repositories.Data.Interfaces;
 
 namespace NET1814_MilkShop.Repositories.Data;
 
@@ -41,6 +42,40 @@ public class AppDbContext : DbContext
     public virtual DbSet<Conversation> Conversations { get; set; }
     public virtual DbSet<Message> Messages { get; set; }
 
+    // Thêm phương thức này để tự động quản lý CreatedAt và ModifiedAt
+    public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+    {
+        var entries = ChangeTracker.Entries();
+
+        foreach (var entry in entries)
+        {
+            // Xử lý cho các entity implement IAuditableEntity
+            if (entry.Entity is IAuditableEntity auditableEntity)
+            {
+                if (entry.State == EntityState.Added)
+                {
+                    auditableEntity.CreatedAt = DateTime.UtcNow;
+                    auditableEntity.ModifiedAt = DateTime.UtcNow;
+                }
+                else if (entry.State == EntityState.Modified)
+                {
+                    auditableEntity.ModifiedAt = DateTime.UtcNow;
+                }
+            }
+
+            // Chuyển đổi tất cả các thuộc tính DateTime sang UTC
+            foreach (var property in entry.Properties)
+            {
+                if (property.CurrentValue is DateTime dateTime && dateTime.Kind == DateTimeKind.Unspecified)
+                {
+                    property.CurrentValue = DateTime.SpecifyKind(dateTime, DateTimeKind.Utc);
+                }
+            }
+        }
+
+        return base.SaveChangesAsync(cancellationToken);
+    }
+
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
         if (!optionsBuilder.IsConfigured)
@@ -64,11 +99,11 @@ public class AppDbContext : DbContext
                 .HasColumnType("int");
 
             b.Property<DateTime>("CreatedAt")
-                .HasColumnType("datetime2")
+                .HasColumnType("timestamp with time zone") // Chỉ định kiểu dữ liệu cho PostgreSQL
                 .HasColumnName("created_at");
 
             b.Property<DateTime?>("DeletedAt")
-                .HasColumnType("datetime2")
+                .HasColumnType("timestamp with time zone") // Chỉ định kiểu dữ liệu cho PostgreSQL
                 .HasColumnName("deleted_at");
 
             b.Property<string>("Description")
@@ -83,7 +118,7 @@ public class AppDbContext : DbContext
                 .HasColumnName("logo");
 
             b.Property<DateTime?>("ModifiedAt")
-                .HasColumnType("datetime2")
+                .HasColumnType("timestamp with time zone") // Chỉ định kiểu dữ liệu cho PostgreSQL
                 .HasColumnName("modified_at");
 
             b.Property<string>("Name")
@@ -104,10 +139,8 @@ public class AppDbContext : DbContext
                 .ValueGeneratedOnAdd()
                 .HasColumnType("int");
 
-            b.Property<int>("Id").UseIdentityColumn();
-
             b.Property<DateTime>("CreatedAt")
-                .HasColumnType("datetime2")
+                .HasColumnType("timestamp with time zone") // Chỉ định kiểu dữ liệu cho PostgreSQL
                 .HasColumnName("created_at");
 
             b.Property<Guid>("CustomerId")
@@ -115,11 +148,11 @@ public class AppDbContext : DbContext
                 .HasColumnName("customer_id");
 
             b.Property<DateTime?>("DeletedAt")
-                .HasColumnType("datetime2")
+                .HasColumnType("timestamp with time zone") // Chỉ định kiểu dữ liệu cho PostgreSQL
                 .HasColumnName("deleted_at");
 
             b.Property<DateTime?>("ModifiedAt")
-                .HasColumnType("datetime2")
+                .HasColumnType("timestamp with time zone") // Chỉ định kiểu dữ liệu cho PostgreSQL
                 .HasColumnName("modified_at");
 
             b.HasKey("Id");
@@ -141,15 +174,15 @@ public class AppDbContext : DbContext
                 .HasColumnName("product_id");
 
             b.Property<DateTime>("CreatedAt")
-                .HasColumnType("datetime2")
+                .HasColumnType("timestamp with time zone") // Chỉ định kiểu dữ liệu cho PostgreSQL
                 .HasColumnName("created_at");
 
             b.Property<DateTime?>("DeletedAt")
-                .HasColumnType("datetime2")
+                .HasColumnType("timestamp with time zone") // Chỉ định kiểu dữ liệu cho PostgreSQL
                 .HasColumnName("deleted_at");
 
             b.Property<DateTime?>("ModifiedAt")
-                .HasColumnType("datetime2")
+                .HasColumnType("timestamp with time zone") // Chỉ định kiểu dữ liệu cho PostgreSQL
                 .HasColumnName("modified_at");
 
             b.Property<int>("Quantity")
@@ -169,11 +202,11 @@ public class AppDbContext : DbContext
                 .HasColumnType("int");
 
             b.Property<DateTime>("CreatedAt")
-                .HasColumnType("datetime2")
+                .HasColumnType("timestamp with time zone") // Chỉ định kiểu dữ liệu cho PostgreSQL
                 .HasColumnName("created_at");
 
             b.Property<DateTime?>("DeletedAt")
-                .HasColumnType("datetime2")
+                .HasColumnType("timestamp with time zone") // Chỉ định kiểu dữ liệu cho PostgreSQL
                 .HasColumnName("deleted_at");
 
             b.Property<string>("Description")
@@ -184,7 +217,7 @@ public class AppDbContext : DbContext
                 .HasColumnName("is_active");
 
             b.Property<DateTime?>("ModifiedAt")
-                .HasColumnType("datetime2")
+                .HasColumnType("timestamp with time zone") // Chỉ định kiểu dữ liệu cho PostgreSQL
                 .HasColumnName("modified_at");
 
             b.Property<string>("Name")
@@ -211,11 +244,11 @@ public class AppDbContext : DbContext
                 .HasColumnName("user_id");
 
             b.Property<DateTime>("CreatedAt")
-                .HasColumnType("datetime2")
+                .HasColumnType("timestamp with time zone") // Chỉ định kiểu dữ liệu cho PostgreSQL
                 .HasColumnName("created_at");
 
             b.Property<DateTime?>("DeletedAt")
-                .HasColumnType("datetime2")
+                .HasColumnType("timestamp with time zone") // Chỉ định kiểu dữ liệu cho PostgreSQL
                 .HasColumnName("deleted_at");
 
             b.Property<string>("Email")
@@ -227,7 +260,7 @@ public class AppDbContext : DbContext
                 .HasColumnName("google_id");
 
             b.Property<DateTime?>("ModifiedAt")
-                .HasColumnType("datetime2")
+                .HasColumnType("timestamp with time zone") // Chỉ định kiểu dữ liệu cho PostgreSQL
                 .HasColumnName("modified_at");
 
             b.Property<string>("PhoneNumber")
@@ -245,16 +278,13 @@ public class AppDbContext : DbContext
             b.HasKey("UserId");
 
             b.HasIndex("Email")
-                .IsUnique()
-                .HasFilter("[email] IS NOT NULL");
+                .IsUnique();
 
             b.HasIndex("GoogleId")
-                .IsUnique()
-                .HasFilter("[google_id] IS NOT NULL");
+                .IsUnique();
 
             b.HasIndex("PhoneNumber")
-                .IsUnique()
-                .HasFilter("[phone_number] IS NOT NULL");
+                .IsUnique();
 
             b.ToTable("customers", null as string);
         });
@@ -265,18 +295,16 @@ public class AppDbContext : DbContext
                 .ValueGeneratedOnAdd()
                 .HasColumnType("int");
 
-            b.Property<int>("Id").UseIdentityColumn();
-
             b.Property<string>("Address")
                 .HasColumnType("nvarchar(2000)")
                 .HasColumnName("address");
 
             b.Property<DateTime>("CreatedAt")
-                .HasColumnType("datetime2")
+                .HasColumnType("timestamp with time zone") // Chỉ định kiểu dữ liệu cho PostgreSQL
                 .HasColumnName("created_at");
 
             b.Property<DateTime?>("DeletedAt")
-                .HasColumnType("datetime2")
+                .HasColumnType("timestamp with time zone") // Chỉ định kiểu dữ liệu cho PostgreSQL
                 .HasColumnName("deleted_at");
 
             b.Property<int>("DistrictId")
@@ -292,7 +320,7 @@ public class AppDbContext : DbContext
                 .HasColumnName("is_default");
 
             b.Property<DateTime?>("ModifiedAt")
-                .HasColumnType("datetime2")
+                .HasColumnType("timestamp with time zone") // Chỉ định kiểu dữ liệu cho PostgreSQL
                 .HasColumnName("modified_at");
 
             b.Property<string>("PhoneNumber")
@@ -339,14 +367,15 @@ public class AppDbContext : DbContext
         {
             b.Property<Guid>("Id")
                 .ValueGeneratedOnAdd()
-                .HasColumnType("uniqueidentifier");
+                .HasColumnType("uniqueidentifier")
+                .HasColumnName("id");
 
             b.Property<string>("Address")
                 .IsRequired()
                 .HasColumnType("nvarchar(2000)");
 
             b.Property<DateTime>("CreatedAt")
-                .HasColumnType("datetime2")
+                .HasColumnType("timestamp with time zone") // Chỉ định kiểu dữ liệu cho PostgreSQL
                 .HasColumnName("created_at");
 
             b.Property<Guid?>("CustomerId")
@@ -354,7 +383,7 @@ public class AppDbContext : DbContext
                 .HasColumnName("customer_id");
 
             b.Property<DateTime?>("DeletedAt")
-                .HasColumnType("datetime2")
+                .HasColumnType("timestamp with time zone") // Chỉ định kiểu dữ liệu cho PostgreSQL
                 .HasColumnName("deleted_at");
 
             b.Property<int>("DistrictId")
@@ -369,7 +398,7 @@ public class AppDbContext : DbContext
                 .HasColumnName("is_preorder");
 
             b.Property<DateTime?>("ModifiedAt")
-                .HasColumnType("datetime2")
+                .HasColumnType("timestamp with time zone") // Chỉ định kiểu dữ liệu cho PostgreSQL
                 .HasColumnName("modified_at");
 
             b.Property<string>("Note")
@@ -380,7 +409,7 @@ public class AppDbContext : DbContext
                 .HasColumnName("transaction_code");
 
             b.Property<DateTime?>("PaymentDate")
-                .HasColumnType("datetime2")
+                .HasColumnType("timestamp with time zone") // Chỉ định kiểu dữ liệu cho PostgreSQL
                 .HasColumnName("payment_date");
 
             b.Property<string>("PaymentMethod")
@@ -460,11 +489,11 @@ public class AppDbContext : DbContext
                 .HasColumnName("product_id");
 
             b.Property<DateTime>("CreatedAt")
-                .HasColumnType("datetime2")
+                .HasColumnType("timestamp with time zone") // Chỉ định kiểu dữ liệu cho PostgreSQL
                 .HasColumnName("created_at");
 
             b.Property<DateTime?>("DeletedAt")
-                .HasColumnType("datetime2")
+                .HasColumnType("timestamp with time zone") // Chỉ định kiểu dữ liệu cho PostgreSQL
                 .HasColumnName("deleted_at");
 
             b.Property<int>("ItemPrice")
@@ -472,7 +501,7 @@ public class AppDbContext : DbContext
                 .HasColumnName("item_price");
 
             b.Property<DateTime?>("ModifiedAt")
-                .HasColumnType("datetime2")
+                .HasColumnType("timestamp with time zone") // Chỉ định kiểu dữ liệu cho PostgreSQL
                 .HasColumnName("modified_at");
 
             b.Property<string>("ProductName")
@@ -504,18 +533,16 @@ public class AppDbContext : DbContext
                 .ValueGeneratedOnAdd()
                 .HasColumnType("int");
 
-            b.Property<int>("Id").UseIdentityColumn();
-
             b.Property<DateTime>("CreatedAt")
-                .HasColumnType("datetime2")
+                .HasColumnType("timestamp with time zone") // Chỉ định kiểu dữ liệu cho PostgreSQL
                 .HasColumnName("created_at");
 
             b.Property<DateTime?>("DeletedAt")
-                .HasColumnType("datetime2")
+                .HasColumnType("timestamp with time zone") // Chỉ định kiểu dữ liệu cho PostgreSQL
                 .HasColumnName("deleted_at");
 
             b.Property<DateTime?>("ModifiedAt")
-                .HasColumnType("datetime2")
+                .HasColumnType("timestamp with time zone") // Chỉ định kiểu dữ liệu cho PostgreSQL
                 .HasColumnName("modified_at");
 
             b.Property<int>("NewStatusId")
@@ -544,14 +571,12 @@ public class AppDbContext : DbContext
                 .ValueGeneratedOnAdd()
                 .HasColumnType("int");
 
-            b.Property<int>("Id").UseIdentityColumn();
-
             b.Property<DateTime>("CreatedAt")
-                .HasColumnType("datetime2")
+                .HasColumnType("timestamp with time zone") // Chỉ định kiểu dữ liệu cho PostgreSQL
                 .HasColumnName("created_at");
 
             b.Property<DateTime?>("DeletedAt")
-                .HasColumnType("datetime2")
+                .HasColumnType("timestamp with time zone") // Chỉ định kiểu dữ liệu cho PostgreSQL
                 .HasColumnName("deleted_at");
 
             b.Property<string>("Description")
@@ -559,7 +584,7 @@ public class AppDbContext : DbContext
                 .HasColumnType("nvarchar(2000)");
 
             b.Property<DateTime?>("ModifiedAt")
-                .HasColumnType("datetime2")
+                .HasColumnType("timestamp with time zone") // Chỉ định kiểu dữ liệu cho PostgreSQL
                 .HasColumnName("modified_at");
 
             b.Property<string>("Name")
@@ -588,11 +613,11 @@ public class AppDbContext : DbContext
                 .HasColumnName("content");
 
             b.Property<DateTime>("CreatedAt")
-                .HasColumnType("datetime2")
+                .HasColumnType("timestamp with time zone") // Chỉ định kiểu dữ liệu cho PostgreSQL
                 .HasColumnName("created_at");
 
             b.Property<DateTime?>("DeletedAt")
-                .HasColumnType("datetime2")
+                .HasColumnType("timestamp with time zone") // Chỉ định kiểu dữ liệu cho PostgreSQL
                 .HasColumnName("deleted_at");
 
             b.Property<bool>("IsActive")
@@ -609,8 +634,8 @@ public class AppDbContext : DbContext
                 .HasColumnName("meta_title");
 
             b.Property<DateTime?>("ModifiedAt")
-                .HasColumnType("datetime2")
-                .HasColumnName("modified_at");
+                            .HasColumnType("timestamp with time zone") // Chỉ định kiểu dữ liệu cho PostgreSQL
+                            .HasColumnName("modified_at");
 
             b.Property<string>("Thumbnail")
                 .HasColumnType("nvarchar(255)")
@@ -635,15 +660,15 @@ public class AppDbContext : DbContext
                 .HasColumnName("product_id");
 
             b.Property<DateTime>("CreatedAt")
-                .HasColumnType("datetime2")
+                .HasColumnType("timestamp with time zone") // Chỉ định kiểu dữ liệu cho PostgreSQL
                 .HasColumnName("created_at");
 
             b.Property<DateTime?>("DeletedAt")
-                .HasColumnType("datetime2")
+                .HasColumnType("timestamp with time zone") // Chỉ định kiểu dữ liệu cho PostgreSQL
                 .HasColumnName("deleted_at");
 
             b.Property<DateTime>("EndDate")
-                .HasColumnType("datetime2")
+                .HasColumnType("timestamp with time zone") // Chỉ định kiểu dữ liệu cho PostgreSQL
                 .HasColumnName("end_date");
 
             b.Property<int>("ExpectedPreOrderDays")
@@ -655,11 +680,11 @@ public class AppDbContext : DbContext
                 .HasColumnName("max_preorder_quantity");
 
             b.Property<DateTime?>("ModifiedAt")
-                .HasColumnType("datetime2")
+                .HasColumnType("timestamp with time zone") // Chỉ định kiểu dữ liệu cho PostgreSQL
                 .HasColumnName("modified_at");
 
             b.Property<DateTime>("StartDate")
-                .HasColumnType("datetime2")
+                .HasColumnType("timestamp with time zone") // Chỉ định kiểu dữ liệu cho PostgreSQL
                 .HasColumnName("start_date");
 
             b.HasKey("ProductId");
@@ -687,11 +712,11 @@ public class AppDbContext : DbContext
                 .HasColumnName("category_id");
 
             b.Property<DateTime>("CreatedAt")
-                .HasColumnType("datetime2")
+                .HasColumnType("timestamp with time zone") // Chỉ định kiểu dữ liệu cho PostgreSQL
                 .HasColumnName("created_at");
 
             b.Property<DateTime?>("DeletedAt")
-                .HasColumnType("datetime2")
+                .HasColumnType("timestamp with time zone") // Chỉ định kiểu dữ liệu cho PostgreSQL
                 .HasColumnName("deleted_at");
 
             b.Property<string>("Description")
@@ -703,7 +728,7 @@ public class AppDbContext : DbContext
                 .HasColumnName("is_active");
 
             b.Property<DateTime?>("ModifiedAt")
-                .HasColumnType("datetime2")
+                .HasColumnType("timestamp with time zone") // Chỉ định kiểu dữ liệu cho PostgreSQL
                 .HasColumnName("modified_at");
 
             b.Property<string>("Name")
@@ -760,11 +785,11 @@ public class AppDbContext : DbContext
                 .HasColumnType("int");
 
             b.Property<DateTime>("CreatedAt")
-                .HasColumnType("datetime2")
+                .HasColumnType("timestamp with time zone") // Chỉ định kiểu dữ liệu cho PostgreSQL
                 .HasColumnName("created_at");
 
             b.Property<DateTime?>("DeletedAt")
-                .HasColumnType("datetime2")
+                .HasColumnType("timestamp with time zone") // Chỉ định kiểu dữ liệu cho PostgreSQL
                 .HasColumnName("deleted_at");
 
             b.Property<string>("Description")
@@ -775,7 +800,7 @@ public class AppDbContext : DbContext
                 .HasColumnName("is_active");
 
             b.Property<DateTime?>("ModifiedAt")
-                .HasColumnType("datetime2")
+                .HasColumnType("timestamp with time zone") // Chỉ định kiểu dữ liệu cho PostgreSQL
                 .HasColumnName("modified_at");
 
             b.Property<string>("Name")
@@ -799,15 +824,15 @@ public class AppDbContext : DbContext
                 .HasColumnName("attribute_id");
 
             b.Property<DateTime>("CreatedAt")
-                .HasColumnType("datetime2")
+                .HasColumnType("timestamp with time zone") // Chỉ định kiểu dữ liệu cho PostgreSQL
                 .HasColumnName("created_at");
 
             b.Property<DateTime?>("DeletedAt")
-                .HasColumnType("datetime2")
+                .HasColumnType("timestamp with time zone") // Chỉ định kiểu dữ liệu cho PostgreSQL
                 .HasColumnName("deleted_at");
 
             b.Property<DateTime?>("ModifiedAt")
-                .HasColumnType("datetime2")
+                .HasColumnType("timestamp with time zone") // Chỉ định kiểu dữ liệu cho PostgreSQL
                 .HasColumnName("modified_at");
 
             b.Property<string>("Value")
@@ -827,11 +852,11 @@ public class AppDbContext : DbContext
                 .HasColumnType("int");
 
             b.Property<DateTime>("CreatedAt")
-                .HasColumnType("datetime2")
+                .HasColumnType("timestamp with time zone") // Chỉ định kiểu dữ liệu cho PostgreSQL
                 .HasColumnName("created_at");
 
             b.Property<DateTime?>("DeletedAt")
-                .HasColumnType("datetime2")
+                .HasColumnType("timestamp with time zone") // Chỉ định kiểu dữ liệu cho PostgreSQL
                 .HasColumnName("deleted_at");
 
             b.Property<string>("ImageUrl")
@@ -843,7 +868,7 @@ public class AppDbContext : DbContext
                 .HasColumnName("is_active");
 
             b.Property<DateTime?>("ModifiedAt")
-                .HasColumnType("datetime2")
+                .HasColumnType("timestamp with time zone") // Chỉ định kiểu dữ liệu cho PostgreSQL
                 .HasColumnName("modified_at");
 
             b.Property<Guid?>("ProductId")
@@ -864,7 +889,7 @@ public class AppDbContext : DbContext
                 .HasColumnType("int");
 
             b.Property<DateTime>("CreatedAt")
-                .HasColumnType("datetime2")
+                .HasColumnType("timestamp with time zone") // Chỉ định kiểu dữ liệu cho PostgreSQL
                 .HasColumnName("created_at");
 
             b.Property<Guid>("CustomerId")
@@ -872,14 +897,14 @@ public class AppDbContext : DbContext
                 .HasColumnName("customer_id");
 
             b.Property<DateTime?>("DeletedAt")
-                .HasColumnType("datetime2")
+                .HasColumnType("timestamp with time zone") // Chỉ định kiểu dữ liệu cho PostgreSQL
                 .HasColumnName("deleted_at");
 
             b.Property<bool>("IsActive")
                 .HasColumnName("is_active");
 
             b.Property<DateTime?>("ModifiedAt")
-                .HasColumnType("datetime2")
+                .HasColumnType("timestamp with time zone") // Chỉ định kiểu dữ liệu cho PostgreSQL
                 .HasColumnName("modified_at");
 
             b.Property<Guid>("OrderId")
@@ -916,11 +941,11 @@ public class AppDbContext : DbContext
                 .HasColumnType("int");
 
             b.Property<DateTime>("CreatedAt")
-                .HasColumnType("datetime2")
+                .HasColumnType("timestamp with time zone") // Chỉ định kiểu dữ liệu cho PostgreSQL
                 .HasColumnName("created_at");
 
             b.Property<DateTime?>("DeletedAt")
-                .HasColumnType("datetime2")
+                .HasColumnType("timestamp with time zone") // Chỉ định kiểu dữ liệu cho PostgreSQL
                 .HasColumnName("deleted_at");
 
             b.Property<string>("Description")
@@ -928,7 +953,7 @@ public class AppDbContext : DbContext
                 .HasColumnType("nvarchar(2000)");
 
             b.Property<DateTime?>("ModifiedAt")
-                .HasColumnType("datetime2")
+                .HasColumnType("timestamp with time zone") // Chỉ định kiểu dữ liệu cho PostgreSQL
                 .HasColumnName("modified_at");
 
             b.Property<string>("Name")
@@ -947,7 +972,7 @@ public class AppDbContext : DbContext
                 .HasColumnType("uniqueidentifier");
 
             b.Property<DateTime>("CreatedAt")
-                .HasColumnType("datetime2")
+                .HasColumnType("timestamp with time zone") // Chỉ định kiểu dữ liệu cho PostgreSQL
                 .HasColumnName("created_at");
 
             b.Property<Guid>("CustomerId")
@@ -955,11 +980,11 @@ public class AppDbContext : DbContext
                 .HasColumnName("customer_id");
 
             b.Property<DateTime?>("DeletedAt")
-                .HasColumnType("datetime2")
+                .HasColumnType("timestamp with time zone") // Chỉ định kiểu dữ liệu cho PostgreSQL
                 .HasColumnName("deleted_at");
 
             b.Property<DateTime?>("ModifiedAt")
-                .HasColumnType("datetime2")
+                .HasColumnType("timestamp with time zone") // Chỉ định kiểu dữ liệu cho PostgreSQL
                 .HasColumnName("modified_at");
 
             b.Property<Guid>("ProductId")
@@ -971,7 +996,7 @@ public class AppDbContext : DbContext
                 .HasColumnName("report_type_id");
 
             b.Property<DateTime?>("ResolvedAt")
-                .HasColumnType("datetime2")
+                .HasColumnType("timestamp with time zone") // Chỉ định kiểu dữ liệu cho PostgreSQL
                 .HasColumnName("resolved_at");
 
             b.Property<Guid>("ResolvedBy")
@@ -996,11 +1021,11 @@ public class AppDbContext : DbContext
                 .HasColumnType("int");
 
             b.Property<DateTime>("CreatedAt")
-                .HasColumnType("datetime2")
+                .HasColumnType("timestamp with time zone") // Chỉ định kiểu dữ liệu cho PostgreSQL
                 .HasColumnName("created_at");
 
             b.Property<DateTime?>("DeletedAt")
-                .HasColumnType("datetime2")
+                .HasColumnType("timestamp with time zone") // Chỉ định kiểu dữ liệu cho PostgreSQL
                 .HasColumnName("deleted_at");
 
             b.Property<string>("Description")
@@ -1008,7 +1033,7 @@ public class AppDbContext : DbContext
                 .HasColumnType("nvarchar(2000)");
 
             b.Property<DateTime?>("ModifiedAt")
-                .HasColumnType("datetime2")
+                .HasColumnType("timestamp with time zone") // Chỉ định kiểu dữ liệu cho PostgreSQL
                 .HasColumnName("modified_at");
 
             b.Property<string>("Name")
@@ -1024,14 +1049,14 @@ public class AppDbContext : DbContext
         {
             b.Property<int>("Id")
                 .ValueGeneratedOnAdd()
-                .HasColumnType("int");
+                .HasColumnName("id");
 
             b.Property<DateTime>("CreatedAt")
-                .HasColumnType("datetime2")
+                .HasColumnType("timestamp with time zone") // Chỉ định kiểu dữ liệu cho PostgreSQL
                 .HasColumnName("created_at");
 
             b.Property<DateTime?>("DeletedAt")
-                .HasColumnType("datetime2")
+                .HasColumnType("timestamp with time zone") // Chỉ định kiểu dữ liệu cho PostgreSQL
                 .HasColumnName("deleted_at");
 
             b.Property<string>("Description")
@@ -1039,7 +1064,7 @@ public class AppDbContext : DbContext
                 .HasColumnType("nvarchar(2000)");
 
             b.Property<DateTime?>("ModifiedAt")
-                .HasColumnType("datetime2")
+                .HasColumnType("timestamp with time zone") // Chỉ định kiểu dữ liệu cho PostgreSQL
                 .HasColumnName("modified_at");
 
             b.Property<string>("Name")
@@ -1058,11 +1083,11 @@ public class AppDbContext : DbContext
                 .HasColumnType("int");
 
             b.Property<DateTime>("CreatedAt")
-                .HasColumnType("datetime2")
+                .HasColumnType("timestamp with time zone") // Chỉ định kiểu dữ liệu cho PostgreSQL
                 .HasColumnName("created_at");
 
             b.Property<DateTime?>("DeletedAt")
-                .HasColumnType("datetime2")
+                .HasColumnType("timestamp with time zone") // Chỉ định kiểu dữ liệu cho PostgreSQL
                 .HasColumnName("deleted_at");
 
             b.Property<string>("Description")
@@ -1077,7 +1102,7 @@ public class AppDbContext : DbContext
                 .HasColumnName("is_active");
 
             b.Property<DateTime?>("ModifiedAt")
-                .HasColumnType("datetime2")
+                .HasColumnType("timestamp with time zone") // Chỉ định kiểu dữ liệu cho PostgreSQL
                 .HasColumnName("modified_at");
 
             b.Property<string>("Name")
@@ -1099,11 +1124,11 @@ public class AppDbContext : DbContext
                 .HasColumnName("id");
 
             b.Property<DateTime>("CreatedAt")
-                .HasColumnType("datetime2")
+                .HasColumnType("timestamp with time zone") // Chỉ định kiểu dữ liệu cho PostgreSQL
                 .HasColumnName("created_at");
 
             b.Property<DateTime?>("DeletedAt")
-                .HasColumnType("datetime2")
+                .HasColumnType("timestamp with time zone") // Chỉ định kiểu dữ liệu cho PostgreSQL
                 .HasColumnName("deleted_at");
 
             b.Property<string>("FirstName")
@@ -1121,7 +1146,7 @@ public class AppDbContext : DbContext
                 .HasColumnName("last_name");
 
             b.Property<DateTime?>("ModifiedAt")
-                .HasColumnType("datetime2")
+                .HasColumnType("timestamp with time zone") // Chỉ định kiểu dữ liệu cho PostgreSQL
                 .HasColumnName("modified_at");
 
             b.Property<string>("Password")
@@ -1163,11 +1188,11 @@ public class AppDbContext : DbContext
                 .HasColumnType("nvarchar(10)");
 
             b.Property<DateTime>("CreatedAt")
-                .HasColumnType("datetime2")
+                .HasColumnType("timestamp with time zone") // Chỉ định kiểu dữ liệu cho PostgreSQL
                 .HasColumnName("created_at");
 
             b.Property<DateTime?>("DeletedAt")
-                .HasColumnType("datetime2")
+                .HasColumnType("timestamp with time zone") // Chỉ định kiểu dữ liệu cho PostgreSQL
                 .HasColumnName("deleted_at");
 
             b.Property<string>("Description")
@@ -1176,7 +1201,7 @@ public class AppDbContext : DbContext
                 .HasColumnType("nvarchar(2000)");
 
             b.Property<DateTime>("EndDate")
-                .HasColumnType("datetime2")
+                .HasColumnType("timestamp with time zone") // Chỉ định kiểu dữ liệu cho PostgreSQL
                 .HasColumnName("end_date");
 
             b.Property<bool>("IsActive")
@@ -1191,7 +1216,7 @@ public class AppDbContext : DbContext
                 .HasColumnName("min_price_condition");
 
             b.Property<DateTime?>("ModifiedAt")
-                .HasColumnType("datetime2")
+                .HasColumnType("timestamp with time zone") // Chỉ định kiểu dữ liệu cho PostgreSQL
                 .HasColumnName("modified_at");
 
             b.Property<int>("Percent")
@@ -1201,7 +1226,7 @@ public class AppDbContext : DbContext
                 .HasColumnType("int");
 
             b.Property<DateTime>("StartDate")
-                .HasColumnType("datetime2")
+                .HasColumnType("timestamp with time zone") // Chỉ định kiểu dữ liệu cho PostgreSQL
                 .HasColumnName("start_date");
 
             b.HasKey("Id");
@@ -1542,15 +1567,15 @@ public class AppDbContext : DbContext
                 .HasColumnName("seller_id");
 
             b.Property<DateTime>("CreatedAt")
-                .HasColumnType("datetime2")
+                .HasColumnType("timestamp with time zone") // Chỉ định kiểu dữ liệu cho PostgreSQL
                 .HasColumnName("created_at");
 
             b.Property<DateTime?>("ModifiedAt")
-                .HasColumnType("datetime2")
+                .HasColumnType("timestamp with time zone") // Chỉ định kiểu dữ liệu cho PostgreSQL
                 .HasColumnName("modified_at");
 
             b.Property<DateTime?>("DeletedAt")
-                .HasColumnType("datetime2")
+                .HasColumnType("timestamp with time zone") // Chỉ định kiểu dữ liệu cho PostgreSQL
                 .HasColumnName("deleted_at");
 
             b.HasKey("Id");
@@ -1601,15 +1626,15 @@ public class AppDbContext : DbContext
                 .HasDefaultValue(false);
 
             b.Property<DateTime>("CreatedAt")
-                .HasColumnType("datetime2")
+                .HasColumnType("timestamp with time zone") // Chỉ định kiểu dữ liệu cho PostgreSQL
                 .HasColumnName("created_at");
 
             b.Property<DateTime?>("ModifiedAt")
-                .HasColumnType("datetime2")
+                .HasColumnType("timestamp with time zone") // Chỉ định kiểu dữ liệu cho PostgreSQL
                 .HasColumnName("modified_at");
 
             b.Property<DateTime?>("DeletedAt")
-                .HasColumnType("datetime2")
+                .HasColumnType("timestamp with time zone") // Chỉ định kiểu dữ liệu cho PostgreSQL
                 .HasColumnName("deleted_at");
 
             b.HasKey("Id");

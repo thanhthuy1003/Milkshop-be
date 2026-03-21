@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using NET1814_MilkShop.Repositories.Data;
@@ -10,6 +10,9 @@ public class Program
 {
     public static void Main(string[] args)
     {
+        // Thêm dòng này vào đầu phương thức Main
+        AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
+
         var builder = WebApplication.CreateBuilder(args);
         // Write log
         _ = builder.Host.UseSerilog(
@@ -21,7 +24,7 @@ public class Program
         startup.ConfigureServices(builder.Services);
         // Build the container.
         var app = builder.Build();
-        
+
         // Seed Database
         using (var scope = app.Services.CreateScope())
         {

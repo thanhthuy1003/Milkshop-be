@@ -1,5 +1,6 @@
 ﻿using System.IdentityModel.Tokens.Jwt;
 using FirebaseAdmin.Auth;
+using Serilog;
 using NET1814_MilkShop.Repositories.CoreHelpers.Constants;
 using NET1814_MilkShop.Repositories.CoreHelpers.Enum;
 using NET1814_MilkShop.Repositories.Data.Entities;
@@ -13,6 +14,7 @@ using NET1814_MilkShop.Services.CoreHelpers.Extensions.Interfaces;
 using NET1814_MilkShop.Services.Services.Interfaces;
 using Newtonsoft.Json;
 
+
 namespace NET1814_MilkShop.Services.Services.Implementations;
 
 public sealed class AuthenticationService : IAuthenticationService
@@ -23,6 +25,7 @@ public sealed class AuthenticationService : IAuthenticationService
     private readonly IAuthenticationRepository _authenticationRepository;
     private readonly IEmailService _emailService;
     private readonly IJwtTokenExtension _jwtTokenExtension;
+    private readonly ILogger _logger;
 
     public AuthenticationService(
         IUnitOfWork unitOfWork,
@@ -30,7 +33,8 @@ public sealed class AuthenticationService : IAuthenticationService
         ICustomerRepository customerRepository,
         IAuthenticationRepository authenticationRepository,
         IEmailService emailService,
-        IJwtTokenExtension jwtTokenExtension
+        IJwtTokenExtension jwtTokenExtension,
+        ILogger logger
     )
     {
         _unitOfWork = unitOfWork;
@@ -39,6 +43,7 @@ public sealed class AuthenticationService : IAuthenticationService
         _authenticationRepository = authenticationRepository;
         _emailService = emailService;
         _jwtTokenExtension = jwtTokenExtension;
+        _logger = logger;
     }
 
     public async Task<ResponseModel> SignUpAsync(SignUpModel model)
@@ -142,40 +147,63 @@ public sealed class AuthenticationService : IAuthenticationService
 
     public async Task<ResponseModel> VerifyAccountAsync(string token)
     {
-        var handler = new JwtSecurityTokenHandler();
-        var jsonToken = handler.ReadToken(token);
-        var tokenS = jsonToken as JwtSecurityToken;
-        var userId = tokenS.Claims.First(claim => claim.Type == "UserId").Value;
-        var verifyToken = tokenS.Claims.First(claim => claim.Type == "Token").Value;
-        var exp = tokenS.Claims.First(claim => claim.Type == "exp").Value;
-        var expirationTime = DateTimeOffset.FromUnixTimeSeconds(long.Parse(exp)).UtcDateTime;
-        var isExist = await _userRepository.GetByIdAsync(Guid.Parse(userId));
-        if (expirationTime < DateTime.UtcNow)
+        try
         {
-            return ResponseModel.BadRequest(ResponseConstants.Expired("Token"));
-        }
+            var handler = new JwtSecurityTokenHandler(); var jsonToken = handler.ReadToken(token); var tokenS = jsonToken as JwtSecurityToken; if (tokenS == null) { return ResponseModel.BadRequest(ResponseConstants.WrongFormat("Token")); }
+            var userId = tokenS.Claims.FirstOrDefault(claim => claim.Type == "UserId")?.Value;
+            var verifyToken = tokenS.Claims.FirstOrDefault(claim => claim.Type == "Token")?.Value;
+            var exp = tokenS.Claims.FirstOrDefault(claim => claim.Type == "exp")?.Value;
 
-        if (isExist == null)
-        {
-            return ResponseModel.Success(ResponseConstants.NotFound("Người dùng"), null);
-        }
-
-        if (verifyToken.Equals(isExist.VerificationCode))
-        {
-            isExist.IsActive = true;
-            isExist.VerificationCode = null;
-            _userRepository.Update(isExist);
-            var result = await _unitOfWork.SaveChangesAsync();
-            if (result > 0)
+            if (string.IsNullOrEmpty(userId) || string.IsNullOrEmpty(verifyToken) || string.IsNullOrEmpty(exp))
             {
-                return ResponseModel.Success(ResponseConstants.Verify(true), null);
+                return ResponseModel.BadRequest(ResponseConstants.WrongFormat("Token"));
             }
 
-            return ResponseModel.Error(ResponseConstants.Verify(false));
-        }
+            if (!long.TryParse(exp, out var expSeconds))
+            {
+                return ResponseModel.BadRequest(ResponseConstants.WrongFormat("Token"));
+            }
 
-        return ResponseModel.BadRequest(ResponseConstants.WrongCode);
+            var expirationTime = DateTimeOffset.FromUnixTimeSeconds(expSeconds).UtcDateTime;
+            if (expirationTime < DateTime.UtcNow)
+            {
+                return ResponseModel.BadRequest(ResponseConstants.Expired("Token"));
+            }
+
+            if (!Guid.TryParse(userId, out var userGuid))
+            {
+                return ResponseModel.BadRequest(ResponseConstants.WrongFormat("Token"));
+            }
+
+            var isExist = await _userRepository.GetByIdAsync(userGuid);
+            if (isExist == null)
+            {
+                return ResponseModel.Success(ResponseConstants.NotFound("Người dùng"), null);
+            }
+
+            if (verifyToken.Equals(isExist.VerificationCode))
+            {
+                isExist.IsActive = true;
+                isExist.VerificationCode = null;
+                _userRepository.Update(isExist);
+                var result = await _unitOfWork.SaveChangesAsync();
+                if (result > 0)
+                {
+                    return ResponseModel.Success(ResponseConstants.Verify(true), null);
+                }
+
+                return ResponseModel.Error(ResponseConstants.Verify(false));
+            }
+
+            return ResponseModel.BadRequest(ResponseConstants.WrongCode);
+        }
+        catch (Exception ex)
+        {
+            _logger.Error(ex, "Lỗi xảy ra trong quá trình xác thực tài khoản.");
+            return ResponseModel.Error("Xác thực không thành công");
+        }
     }
+
 
     public async Task<ResponseModel> ForgotPasswordAsync(ForgotPasswordModel request)
     {

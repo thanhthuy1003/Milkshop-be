@@ -31,7 +31,7 @@ public class AuthenticationController : Controller
         return ResponseExtension.Result(response);
     }
 
-    [HttpPost("verify")]
+    [HttpGet("verify")]
     public async Task<IActionResult> VerifyAccount([FromQuery] string token)
     {
         _logger.Information("Verify Account");
