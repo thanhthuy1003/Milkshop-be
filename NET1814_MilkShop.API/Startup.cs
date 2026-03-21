@@ -103,7 +103,8 @@ public class Startup
             Console.WriteLine($"[WARNING] Firebase initialization failed: {ex.Message}. Continuing without Firebase.");
         }
         services.Configure<EmailSettingModel>(_configuration.GetSection("EmailSettings"));
-        services.AddDbContext<AppDbContext>(options => options.UseSqlServer(connectionString));
+        //services.AddDbContext<AppDbContext>(options => options.UseSqlServer(connectionString));
+        services.AddDbContext<AppDbContext>(options => options.UseNpgsql(connectionString));
         services.AddHttpClient();
         services.AddExceptionHandler<ExceptionLoggingHandler>();
         services.AddExceptionHandler<GlobalExceptionHandler>();

@@ -45,8 +45,10 @@ public class AppDbContext : DbContext
     {
         if (!optionsBuilder.IsConfigured)
         {
-            optionsBuilder.UseSqlServer(
-                _configuration.GetConnectionString("DefaultConnection")
+            //optionsBuilder.UseSqlServer(
+            //    _configuration.GetConnectionString("DefaultConnection")
+            optionsBuilder.UseNpgsql(
+            _configuration.GetConnectionString("DefaultConnection")
             );
         }
     }
@@ -61,8 +63,6 @@ public class AppDbContext : DbContext
                 .ValueGeneratedOnAdd()
                 .HasColumnType("int");
 
-            b.Property<int>("Id").UseIdentityColumn();
-
             b.Property<DateTime>("CreatedAt")
                 .HasColumnType("datetime2")
                 .HasColumnName("created_at");
@@ -76,7 +76,6 @@ public class AppDbContext : DbContext
                 .HasColumnType("nvarchar(2000)");
 
             b.Property<bool>("IsActive")
-                .HasColumnType("bit")
                 .HasColumnName("is_active");
 
             b.Property<string>("Logo")
@@ -169,8 +168,6 @@ public class AppDbContext : DbContext
                 .ValueGeneratedOnAdd()
                 .HasColumnType("int");
 
-            b.Property<int>("Id").UseIdentityColumn();
-
             b.Property<DateTime>("CreatedAt")
                 .HasColumnType("datetime2")
                 .HasColumnName("created_at");
@@ -184,7 +181,6 @@ public class AppDbContext : DbContext
                 .HasColumnType("nvarchar(2000)");
 
             b.Property<bool>("IsActive")
-                .HasColumnType("bit")
                 .HasColumnName("is_active");
 
             b.Property<DateTime?>("ModifiedAt")
@@ -293,7 +289,6 @@ public class AppDbContext : DbContext
                 .HasColumnName("district_name");
 
             b.Property<bool>("IsDefault")
-                .HasColumnType("bit")
                 .HasColumnName("is_default");
 
             b.Property<DateTime?>("ModifiedAt")
@@ -371,7 +366,6 @@ public class AppDbContext : DbContext
                 .HasColumnName("email");
 
             b.Property<bool>("IsPreorder")
-                .HasColumnType("bit")
                 .HasColumnName("is_preorder");
 
             b.Property<DateTime?>("ModifiedAt")
@@ -602,7 +596,6 @@ public class AppDbContext : DbContext
                 .HasColumnName("deleted_at");
 
             b.Property<bool>("IsActive")
-                .HasColumnType("bit")
                 .HasColumnName("is_active");
 
             b.Property<string>("MetaDescription")
@@ -707,7 +700,6 @@ public class AppDbContext : DbContext
                 .UseCollation("Latin1_General_CI_AI");
 
             b.Property<bool>("IsActive")
-                .HasColumnType("bit")
                 .HasColumnName("is_active");
 
             b.Property<DateTime?>("ModifiedAt")
@@ -767,8 +759,6 @@ public class AppDbContext : DbContext
                 .ValueGeneratedOnAdd()
                 .HasColumnType("int");
 
-            b.Property<int>("Id").UseIdentityColumn();
-
             b.Property<DateTime>("CreatedAt")
                 .HasColumnType("datetime2")
                 .HasColumnName("created_at");
@@ -782,7 +772,6 @@ public class AppDbContext : DbContext
                 .HasColumnType("nvarchar(2000)");
 
             b.Property<bool>("IsActive")
-                .HasColumnType("bit")
                 .HasColumnName("is_active");
 
             b.Property<DateTime?>("ModifiedAt")
@@ -837,8 +826,6 @@ public class AppDbContext : DbContext
                 .ValueGeneratedOnAdd()
                 .HasColumnType("int");
 
-            b.Property<int>("Id").UseIdentityColumn();
-
             b.Property<DateTime>("CreatedAt")
                 .HasColumnType("datetime2")
                 .HasColumnName("created_at");
@@ -853,7 +840,7 @@ public class AppDbContext : DbContext
                 .HasColumnName("image_url");
 
             b.Property<bool>("IsActive")
-                .HasColumnType("bit");
+                .HasColumnName("is_active");
 
             b.Property<DateTime?>("ModifiedAt")
                 .HasColumnType("datetime2")
@@ -876,8 +863,6 @@ public class AppDbContext : DbContext
                 .ValueGeneratedOnAdd()
                 .HasColumnType("int");
 
-            b.Property<int>("Id").UseIdentityColumn();
-
             b.Property<DateTime>("CreatedAt")
                 .HasColumnType("datetime2")
                 .HasColumnName("created_at");
@@ -891,7 +876,6 @@ public class AppDbContext : DbContext
                 .HasColumnName("deleted_at");
 
             b.Property<bool>("IsActive")
-                .HasColumnType("bit")
                 .HasColumnName("is_active");
 
             b.Property<DateTime?>("ModifiedAt")
@@ -930,8 +914,6 @@ public class AppDbContext : DbContext
             b.Property<int>("Id")
                 .ValueGeneratedOnAdd()
                 .HasColumnType("int");
-
-            b.Property<int>("Id").UseIdentityColumn();
 
             b.Property<DateTime>("CreatedAt")
                 .HasColumnType("datetime2")
@@ -1013,8 +995,6 @@ public class AppDbContext : DbContext
                 .ValueGeneratedOnAdd()
                 .HasColumnType("int");
 
-            b.Property<int>("Id").UseIdentityColumn();
-
             b.Property<DateTime>("CreatedAt")
                 .HasColumnType("datetime2")
                 .HasColumnName("created_at");
@@ -1045,8 +1025,6 @@ public class AppDbContext : DbContext
             b.Property<int>("Id")
                 .ValueGeneratedOnAdd()
                 .HasColumnType("int");
-
-            b.Property<int>("Id").UseIdentityColumn();
 
             b.Property<DateTime>("CreatedAt")
                 .HasColumnType("datetime2")
@@ -1079,8 +1057,6 @@ public class AppDbContext : DbContext
                 .ValueGeneratedOnAdd()
                 .HasColumnType("int");
 
-            b.Property<int>("Id").UseIdentityColumn();
-
             b.Property<DateTime>("CreatedAt")
                 .HasColumnType("datetime2")
                 .HasColumnName("created_at");
@@ -1098,7 +1074,6 @@ public class AppDbContext : DbContext
                 .HasColumnName("gram");
 
             b.Property<bool>("IsActive")
-                .HasColumnType("bit")
                 .HasColumnName("is_active");
 
             b.Property<DateTime?>("ModifiedAt")
@@ -1136,11 +1111,9 @@ public class AppDbContext : DbContext
                 .HasColumnName("first_name");
 
             b.Property<bool>("IsActive")
-                .HasColumnType("bit")
                 .HasColumnName("is_active");
 
             b.Property<bool>("IsBanned")
-                .HasColumnType("bit")
                 .HasColumnName("is_banned");
 
             b.Property<string>("LastName")
@@ -1207,7 +1180,6 @@ public class AppDbContext : DbContext
                 .HasColumnName("end_date");
 
             b.Property<bool>("IsActive")
-                .HasColumnType("bit")
                 .HasColumnName("is_active");
 
             b.Property<int>("MaxDiscount")
@@ -1625,7 +1597,6 @@ public class AppDbContext : DbContext
                 .HasColumnName("content");
 
             b.Property<bool>("IsRead")
-                .HasColumnType("bit")
                 .HasColumnName("is_read")
                 .HasDefaultValue(false);
 
