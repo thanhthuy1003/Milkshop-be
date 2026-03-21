@@ -1096,7 +1096,7 @@ public class AppDbContext : DbContext
         {
             b.Property<Guid>("Id")
                 .ValueGeneratedOnAdd()
-                .HasColumnType("uniqueidentifier");
+                .HasColumnName("id");
 
             b.Property<DateTime>("CreatedAt")
                 .HasColumnType("datetime2")

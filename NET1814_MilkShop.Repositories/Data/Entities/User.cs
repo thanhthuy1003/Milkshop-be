@@ -8,7 +8,7 @@ namespace NET1814_MilkShop.Repositories.Data.Entities;
 [Table("users")]
 public class User : IAuditableEntity
 {
-    [Key] public Guid Id { get; set; }
+    [Key][Column("id")] public Guid Id { get; set; }
 
     [Column("username", TypeName = "nvarchar(50)")]
     public string Username { get; set; } = null!;
