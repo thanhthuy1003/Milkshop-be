@@ -202,6 +202,7 @@ public class Startup
 
         app.UseRouting();
         app.UseCors("AllowAll");
+        app.UseAuthentication();
         app.UseAuthorization();
         app.UseExceptionHandler(_ => { });
         app.UseEndpoints(endpoint =>
