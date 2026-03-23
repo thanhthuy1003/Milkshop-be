@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http;
 using NET1814_MilkShop.Repositories.CoreHelpers.Constants;
 using NET1814_MilkShop.Repositories.Data.Entities;
 using NET1814_MilkShop.Repositories.Models;
@@ -37,7 +37,7 @@ public class ProductImageService : IProductImageService
             return ResponseModel.BadRequest(ResponseConstants.NotFound("Sản phẩm"));
         }
 
-        var productImages = await _productImageRepository.GetByProductIdAsync(id, null);
+        var productImages = await _productImageRepository.GetByProductIdAsync(id);
         if (productImages.Count + images.Count > 10)
         {
             return ResponseModel.Success(
@@ -105,29 +105,11 @@ public class ProductImageService : IProductImageService
         return ResponseModel.Error(ResponseConstants.Delete("hình ảnh sản phẩm", false));
     }
 
-    public async Task<ResponseModel> UpdateProductImageAsync(int id, bool isActive)
+
+
+    public async Task<ResponseModel> GetByProductIdAsync(Guid id)
     {
-        var productImage = await _productImageRepository.GetByIdAsync(id);
-        if (productImage == null)
-        {
-            return ResponseModel.Success(ResponseConstants.NotFound("Hình ảnh sản phẩm"), null);
-        }
-
-        productImage.IsActive = isActive;
-        _productImageRepository.Update(productImage);
-        var result = await _unitOfWork.SaveChangesAsync();
-        if (result > 0)
-        {
-            return ResponseModel.Success(
-                ResponseConstants.Update("hình ảnh sản phẩm", true), null);
-        }
-
-        return ResponseModel.Error(ResponseConstants.Update("hình ảnh sản phẩm", false));
-    }
-
-    public async Task<ResponseModel> GetByProductIdAsync(Guid id, bool? isActive)
-    {
-        var productImages = await _productImageRepository.GetByProductIdAsync(id, isActive);
+        var productImages = await _productImageRepository.GetByProductIdAsync(id);
         if (productImages.Any())
         {
             return ResponseModel.Success(

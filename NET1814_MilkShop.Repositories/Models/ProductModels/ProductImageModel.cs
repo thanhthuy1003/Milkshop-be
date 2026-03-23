@@ -1,4 +1,4 @@
-﻿namespace NET1814_MilkShop.Repositories.Models.ProductModels;
+namespace NET1814_MilkShop.Repositories.Models.ProductModels;
 
 public class ProductImageModel
 {
@@ -7,6 +7,4 @@ public class ProductImageModel
     public Guid ProductId { get; set; }
 
     public string ImageUrl { get; set; } = null!;
-
-    public bool IsActive { get; set; }
 }

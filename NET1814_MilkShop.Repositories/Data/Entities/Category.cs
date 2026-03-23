@@ -9,15 +9,14 @@ public class Category : IAuditableEntity
 {
     [Key] public int Id { get; set; }
 
-    [Column("name")] public string Name { get; set; } = null!;
+    public string Name { get; set; } = null!;
 
-    [Column("description")] public string? Description { get; set; }
+    public string? Description { get; set; }
 
     [Column("is_active")]
     public bool IsActive { get; set; }
 
     [ForeignKey("Parent")]
-    [Column("parent_id")]
     //Default parent is 0 (root category)
     public int? ParentId { get; set; }
 

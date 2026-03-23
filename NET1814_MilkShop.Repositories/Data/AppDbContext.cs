@@ -155,7 +155,7 @@ public class AppDbContext : DbContext
 
                 b.Property<string>("Description")
                     .HasColumnType("nvarchar(2000)")
-                    .HasColumnName("description");
+                    .HasColumnName("Description");
 
                 b.Property<bool>("IsActive")
                     .HasColumnName("is_active");
@@ -284,7 +284,7 @@ public class AppDbContext : DbContext
 
                 b.Property<string>("Description")
                     .HasColumnType("nvarchar(2000)")
-                    .HasColumnName("description");
+                    .HasColumnName("Description");
 
                 b.Property<bool>("IsActive")
                     .HasColumnName("is_active");
@@ -295,11 +295,11 @@ public class AppDbContext : DbContext
                 b.Property<string>("Name")
                     .IsRequired()
                     .HasColumnType("nvarchar(255)")
-                    .HasColumnName("name")
+                    .HasColumnName("Name")
                     .UseCollation("Latin1_General_CI_AI");
 
                 b.Property<int?>("ParentId")
-                    .HasColumnName("parent_id");
+                    .HasColumnName("ParentId");
             }
 
             b.HasKey("Id");
@@ -1076,10 +1076,7 @@ public class AppDbContext : DbContext
 
                 b.Property<string>("Description")
                     .HasColumnType("nvarchar(2000)")
-                    .HasColumnName("description");
-
-                b.Property<bool>("IsActive")
-                    .HasColumnName("is_active");
+                    .HasColumnName("Description");
 
                 b.Property<DateTime?>("ModifiedAt")
                     .HasColumnName("modified_at");
@@ -1088,7 +1085,7 @@ public class AppDbContext : DbContext
             b.Property<string>("Name")
                 .IsRequired()
                 .HasColumnType("nvarchar(255)")
-                .HasColumnName("name")
+                .HasColumnName("Name")
                 .UseCollation("Latin1_General_CI_AS");
 
             b.HasKey("Id");
@@ -1172,9 +1169,6 @@ public class AppDbContext : DbContext
                     .IsRequired()
                     .HasColumnType("nvarchar(255)")
                     .HasColumnName("image_url");
-
-                b.Property<bool>("IsActive")
-                    .HasColumnName("is_active");
 
                 b.Property<DateTime?>("ModifiedAt")
                     .HasColumnName("modified_at");
@@ -1395,12 +1389,17 @@ public class AppDbContext : DbContext
             else
             {
                 b.Property<string>("Description")
-                    .HasColumnType("nvarchar(2000)");
+                    .HasColumnType("nvarchar(2000)")
+                    .HasColumnName("Description");
+
+                b.Property<int>("Gram")
+                    .HasColumnName("gram");
             }
 
             b.Property<string>("Name")
                 .IsRequired()
-                .HasColumnType("nvarchar(255)");
+                .HasColumnType("nvarchar(255)")
+                .HasColumnName("Name");
 
             b.HasKey("Id");
         });

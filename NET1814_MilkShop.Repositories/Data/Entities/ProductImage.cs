@@ -7,17 +7,14 @@ namespace NET1814_MilkShop.Repositories.Data.Entities;
 
 public class ProductImage : IAuditableEntity
 {
-    [Key][Column("id")] public int Id { get; set; }
+    [Key] public int Id { get; set; }
 
-    [Column("product_id")]
     public Guid? ProductId { get; set; }
 
-    [Column("image_url")]
     public string ImageUrl { get; set; } = null!;
 
     [DefaultValue(false)] 
-    [Column("is_active")]
-    public bool IsActive { get; set; }
+    public virtual Product? Product { get; set; }
 
     [Column("created_at", TypeName = "datetime2")]
     public DateTime CreatedAt { get; set; }
@@ -27,6 +24,4 @@ public class ProductImage : IAuditableEntity
 
     [Column("deleted_at", TypeName = "datetime2")]
     public DateTime? DeletedAt { get; set; }
-
-    public virtual Product? Product { get; set; }
 }

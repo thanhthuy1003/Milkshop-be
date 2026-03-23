@@ -8,10 +8,8 @@ public class ProductStatus : IAuditableEntity
 {
     [Key] public int Id { get; set; }
 
-    [Column("name", TypeName = "nvarchar(255)")]
     public string Name { get; set; } = null!; //SELLING, OUTOFSTOCK, PREORDER
 
-    [Column("description", TypeName = "nvarchar(2000)")]
     public string? Description { get; set; }
 
     [Column("created_at", TypeName = "datetime2")]

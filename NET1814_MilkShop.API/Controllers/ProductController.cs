@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using NET1814_MilkShop.API.CoreHelpers.Extensions;
 using NET1814_MilkShop.Repositories.Models.BrandModels;
@@ -599,10 +599,10 @@ public class ProductController : Controller
     /// <param name="isActive"></param>
     /// <returns></returns>
     [HttpGet("{id}/images")]
-    public async Task<IActionResult> GetProductImages(Guid id, [FromQuery] bool? isActive)
+    public async Task<IActionResult> GetProductImages(Guid id)
     {
         _logger.Information("Get Product Images");
-        var response = await _productImageService.GetByProductIdAsync(id, isActive);
+        var response = await _productImageService.GetByProductIdAsync(id);
         return ResponseExtension.Result(response);
     }
 
@@ -625,21 +625,7 @@ public class ProductController : Controller
         return ResponseExtension.Result(response);
     }
 
-    /// <summary>
-    /// Update product image
-    /// Check exist product image by id
-    /// </summary>
-    /// <param name="id"></param>
-    /// <param name="isActive"></param>
-    /// <returns></returns>
-    [HttpPatch("images/{id}")]
-    [Authorize(AuthenticationSchemes = "Access", Roles = "1,2")]
-    public async Task<IActionResult> UpdateProductImage(int id, [FromBody] bool isActive)
-    {
-        _logger.Information("Update Product Image");
-        var response = await _productImageService.UpdateProductImageAsync(id, isActive);
-        return ResponseExtension.Result(response);
-    }
+
 
     /// <summary>
     /// Delete by image id (Hard delete)

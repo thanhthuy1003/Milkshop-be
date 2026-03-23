@@ -1,4 +1,4 @@
-﻿using NET1814_MilkShop.Repositories.Data.Entities;
+using NET1814_MilkShop.Repositories.Data.Entities;
 using NET1814_MilkShop.Repositories.Models.ProductModels;
 
 namespace NET1814_MilkShop.Repositories.Repositories.Interfaces;
@@ -11,7 +11,7 @@ public interface IProductImageRepository
     /// <param name="id"></param>
     /// <param name="isActive"></param>
     /// <returns></returns>
-    Task<List<ProductImageModel>> GetByProductIdAsync(Guid id, bool? isActive);
+    Task<List<ProductImageModel>> GetByProductIdAsync(Guid id);
 
     Task<ProductImage?> GetByIdAsync(int id);
     void Add(ProductImage productImage);
