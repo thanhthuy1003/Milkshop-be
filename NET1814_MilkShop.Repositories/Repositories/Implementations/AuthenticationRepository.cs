@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using NET1814_MilkShop.Repositories.CoreHelpers.Enum;
 using NET1814_MilkShop.Repositories.Data;
 using NET1814_MilkShop.Repositories.Data.Entities;
@@ -17,14 +17,23 @@ public sealed class AuthenticationRepository : Repository<User>, IAuthentication
     {
         var user = isCustomer
             ? await _query.Include(u => u.Role)
-                .FirstOrDefaultAsync(x => username.Equals(x.Username) &&
+                .FirstOrDefaultAsync(x => username.ToLower().Equals(x.Username.ToLower()) &&
                     (x.RoleId == (int)RoleId.Buyer || x.RoleId == (int)RoleId.Seller))
             : await _query.Include(u => u.Role)
-                .FirstOrDefaultAsync(x => username.Equals(x.Username) &&
+                .FirstOrDefaultAsync(x => username.ToLower().Equals(x.Username.ToLower()) &&
                     x.RoleId != (int)RoleId.Buyer && x.RoleId != (int)RoleId.Seller);
-        if (user != null && BCrypt.Net.BCrypt.Verify(password, user.Password))
+        if (user != null)
         {
-            return user;
+            var isPasswordMatched = BCrypt.Net.BCrypt.Verify(password, user.Password);
+            Console.WriteLine($"[DEBUG] Login attempt for user '{username}': User found. Password match: {isPasswordMatched}");
+            if (isPasswordMatched)
+            {
+                return user;
+            }
+        }
+        else
+        {
+            Console.WriteLine($"[DEBUG] Login attempt for user '{username}': User NOT found.");
         }
 
         return null;

@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using NET1814_MilkShop.Repositories.Data.Entities;
 using NET1814_MilkShop.Repositories.Data.Interfaces;
@@ -91,35 +91,82 @@ public class AppDbContext : DbContext
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
+
+        // Map all properties to snake_case for both SQL Server and PostgreSQL compatibility
+        foreach (var entity in modelBuilder.Model.GetEntityTypes())
+        {
+            var tableName = entity.GetTableName();
+            if (string.IsNullOrEmpty(tableName)) continue;
+
+            // Apply snake_case to the table name (this handles pluralization naturally if GetTableName() provides it)
+            entity.SetTableName(ToSnakeCase(tableName));
+
+            if (Database.IsNpgsql())
+            {
+                foreach (var property in entity.GetProperties())
+                {
+                    // Map all properties to snake_case for PostgreSQL
+                    property.SetColumnName(ToSnakeCase(property.Name));
+                }
+            }
+            // For SQL Server, we rely on attributes or default naming (PascalCase) 
+            // to avoid mismatches like ParentId -> parent_id.
+        }
+
         ////////////////////////////////////////////////////////////////
-        modelBuilder.Entity("NET1814_MilkShop.Repositories.Data.Entities.Brand", b =>
+        modelBuilder.Entity<Brand>(b =>
         {
             b.Property<int>("Id")
                 .ValueGeneratedOnAdd()
                 .HasColumnType("int");
 
-            b.Property<DateTime>("CreatedAt")
-                .HasColumnType("timestamp with time zone") // Chỉ định kiểu dữ liệu cho PostgreSQL
-                .HasColumnName("created_at");
+            if (Database.IsNpgsql())
+            {
+                b.Property<DateTime>("CreatedAt")
+                    .HasColumnType("timestamp with time zone") // Chỉ định kiểu dữ liệu cho PostgreSQL
+                    .HasColumnName("created_at");
 
-            b.Property<DateTime?>("DeletedAt")
-                .HasColumnType("timestamp with time zone") // Chỉ định kiểu dữ liệu cho PostgreSQL
-                .HasColumnName("deleted_at");
+                b.Property<DateTime?>("DeletedAt")
+                    .HasColumnType("timestamp with time zone") // Chỉ định kiểu dữ liệu cho PostgreSQL
+                    .HasColumnName("deleted_at");
 
-            b.Property<string>("Description")
-                .HasColumnName("description")
-                .HasColumnType("nvarchar(2000)");
+                b.Property<string>("Description")
+                    .HasColumnName("Description")
+                    .HasColumnType("nvarchar(2000)");
 
-            b.Property<bool>("IsActive")
-                .HasColumnName("is_active");
+                b.Property<bool>("IsActive")
+                    .HasColumnName("is_active");
 
-            b.Property<string>("Logo")
-                .HasColumnType("nvarchar(255)")
-                .HasColumnName("logo");
+                b.Property<string>("Logo")
+                    .HasColumnType("nvarchar(255)")
+                    .HasColumnName("logo");
 
-            b.Property<DateTime?>("ModifiedAt")
-                .HasColumnType("timestamp with time zone") // Chỉ định kiểu dữ liệu cho PostgreSQL
-                .HasColumnName("modified_at");
+                b.Property<DateTime?>("ModifiedAt")
+                    .HasColumnType("timestamp with time zone") // Chỉ định kiểu dữ liệu cho PostgreSQL
+                    .HasColumnName("modified_at");
+            }
+            else
+            {
+                b.Property<DateTime>("CreatedAt")
+                    .HasColumnName("created_at");
+
+                b.Property<DateTime?>("DeletedAt")
+                    .HasColumnName("deleted_at");
+
+                b.Property<string>("Description")
+                    .HasColumnType("nvarchar(2000)")
+                    .HasColumnName("description");
+
+                b.Property<bool>("IsActive")
+                    .HasColumnName("is_active");
+
+                b.Property<string>("Logo")
+                    .HasColumnType("nvarchar(255)")
+                    .HasColumnName("logo");
+
+                b.Property<DateTime?>("ModifiedAt")
+                    .HasColumnName("modified_at");
+            }
 
             b.Property<string>("Name")
                 .IsRequired()
@@ -129,11 +176,9 @@ public class AppDbContext : DbContext
             b.HasKey("Id");
 
             b.HasIndex("Name");
-
-            b.ToTable("brands", null as string);
         });
 
-        modelBuilder.Entity("NET1814_MilkShop.Repositories.Data.Entities.Cart", b =>
+        modelBuilder.Entity<Cart>(b =>
         {
             b.Property<int>("Id")
                 .ValueGeneratedOnAdd()
@@ -159,11 +204,9 @@ public class AppDbContext : DbContext
 
             b.HasIndex("CustomerId")
                 .IsUnique();
-
-            b.ToTable("carts", null as string);
         });
 
-        modelBuilder.Entity("NET1814_MilkShop.Repositories.Data.Entities.CartDetail", b =>
+        modelBuilder.Entity<CartDetail>(b =>
         {
             b.Property<int>("CartId")
                 .HasColumnType("int")
@@ -186,58 +229,87 @@ public class AppDbContext : DbContext
                 .HasColumnName("modified_at");
 
             b.Property<int>("Quantity")
-                .HasColumnType("int");
+                .HasColumnType("int")
+                .HasColumnName("quantity");
 
             b.HasKey("CartId", "ProductId");
 
             b.HasIndex("ProductId");
-
-            b.ToTable("cart_details", null as string);
         });
 
-        modelBuilder.Entity("NET1814_MilkShop.Repositories.Data.Entities.Category", b =>
+        modelBuilder.Entity<Category>(b =>
         {
             b.Property<int>("Id")
                 .ValueGeneratedOnAdd()
                 .HasColumnType("int");
 
-            b.Property<DateTime>("CreatedAt")
-                .HasColumnType("timestamp with time zone") // Chỉ định kiểu dữ liệu cho PostgreSQL
-                .HasColumnName("created_at");
+            if (Database.IsNpgsql())
+            {
+                b.Property<DateTime>("CreatedAt")
+                    .HasColumnType("timestamp with time zone") // Chỉ định kiểu dữ liệu cho PostgreSQL
+                    .HasColumnName("created_at");
 
-            b.Property<DateTime?>("DeletedAt")
-                .HasColumnType("timestamp with time zone") // Chỉ định kiểu dữ liệu cho PostgreSQL
-                .HasColumnName("deleted_at");
+                b.Property<DateTime?>("DeletedAt")
+                    .HasColumnType("timestamp with time zone") // Chỉ định kiểu dữ liệu cho PostgreSQL
+                    .HasColumnName("deleted_at");
 
-            b.Property<string>("Description")
-                .HasColumnName("description")
-                .HasColumnType("nvarchar(2000)");
+                b.Property<string>("Description")
+                    .HasColumnName("Description")
+                    .HasColumnType("nvarchar(2000)");
 
-            b.Property<bool>("IsActive")
-                .HasColumnName("is_active");
+                b.Property<bool>("IsActive")
+                    .HasColumnName("is_active");
 
-            b.Property<DateTime?>("ModifiedAt")
-                .HasColumnType("timestamp with time zone") // Chỉ định kiểu dữ liệu cho PostgreSQL
-                .HasColumnName("modified_at");
+                b.Property<DateTime?>("ModifiedAt")
+                    .HasColumnType("timestamp with time zone")
+                    .HasColumnName("modified_at");
 
-            b.Property<string>("Name")
-                .IsRequired()
-                .HasColumnType("nvarchar(255)")
-                .UseCollation("Latin1_General_CI_AI");
+                b.Property<string>("Name")
+                    .IsRequired()
+                    .HasColumnName("name")
+                    .HasColumnType("nvarchar(255)")
+                    .UseCollation("Latin1_General_CI_AI");
 
-            b.Property<int?>("ParentId")
-                .HasColumnType("int");
+                b.Property<int?>("ParentId")
+                    .HasColumnName("parent_id")
+                    .HasColumnType("int");
+            }
+            else
+            {
+                b.Property<DateTime>("CreatedAt")
+                    .HasColumnName("created_at");
+
+                b.Property<DateTime?>("DeletedAt")
+                    .HasColumnName("deleted_at");
+
+                b.Property<string>("Description")
+                    .HasColumnType("nvarchar(2000)")
+                    .HasColumnName("description");
+
+                b.Property<bool>("IsActive")
+                    .HasColumnName("is_active");
+
+                b.Property<DateTime?>("ModifiedAt")
+                    .HasColumnName("modified_at");
+
+                b.Property<string>("Name")
+                    .IsRequired()
+                    .HasColumnType("nvarchar(255)")
+                    .HasColumnName("name")
+                    .UseCollation("Latin1_General_CI_AI");
+
+                b.Property<int?>("ParentId")
+                    .HasColumnName("parent_id");
+            }
 
             b.HasKey("Id");
 
             b.HasIndex("Name");
 
             b.HasIndex("ParentId");
-
-            b.ToTable("categories", null as string);
         });
 
-        modelBuilder.Entity("NET1814_MilkShop.Repositories.Data.Entities.Customer", b =>
+        modelBuilder.Entity<Customer>(b =>
         {
             b.Property<Guid>("UserId")
                 .HasColumnType("uniqueidentifier")
@@ -285,11 +357,9 @@ public class AppDbContext : DbContext
 
             b.HasIndex("PhoneNumber")
                 .IsUnique();
-
-            b.ToTable("customers", null as string);
         });
 
-        modelBuilder.Entity("NET1814_MilkShop.Repositories.Data.Entities.CustomerAddress", b =>
+        modelBuilder.Entity<CustomerAddress>(b =>
         {
             b.Property<int>("Id")
                 .ValueGeneratedOnAdd()
@@ -359,126 +429,201 @@ public class AppDbContext : DbContext
             b.HasKey("Id");
 
             b.HasIndex("UserId");
-
-            b.ToTable("customer_addresses", null as string);
         });
 
-        modelBuilder.Entity("NET1814_MilkShop.Repositories.Data.Entities.Order", b =>
+        modelBuilder.Entity<Order>(b =>
         {
             b.Property<Guid>("Id")
                 .ValueGeneratedOnAdd()
                 .HasColumnType("uniqueidentifier")
                 .HasColumnName("id");
 
-            b.Property<string>("Address")
-                .IsRequired()
-                .HasColumnType("nvarchar(2000)");
+            if (Database.IsNpgsql())
+            {
+                b.Property<DateTime>("CreatedAt")
+                    .HasColumnType("timestamp with time zone") // Chỉ định kiểu dữ liệu cho PostgreSQL
+                    .HasColumnName("created_at");
 
-            b.Property<DateTime>("CreatedAt")
-                .HasColumnType("timestamp with time zone") // Chỉ định kiểu dữ liệu cho PostgreSQL
-                .HasColumnName("created_at");
+                b.Property<Guid?>("CustomerId")
+                    .HasColumnType("uniqueidentifier")
+                    .HasColumnName("customer_id");
 
-            b.Property<Guid?>("CustomerId")
-                .HasColumnType("uniqueidentifier")
-                .HasColumnName("customer_id");
+                b.Property<DateTime?>("DeletedAt")
+                    .HasColumnType("timestamp with time zone") // Chỉ định kiểu dữ liệu cho PostgreSQL
+                    .HasColumnName("deleted_at");
 
-            b.Property<DateTime?>("DeletedAt")
-                .HasColumnType("timestamp with time zone") // Chỉ định kiểu dữ liệu cho PostgreSQL
-                .HasColumnName("deleted_at");
+                b.Property<int>("DistrictId")
+                    .HasColumnType("int")
+                    .HasColumnName("district_id");
 
-            b.Property<int>("DistrictId")
-                .HasColumnType("int")
-                .HasColumnName("district_id");
+                b.Property<string>("Email")
+                    .HasColumnType("nvarchar(255)")
+                    .HasColumnName("email");
 
-            b.Property<string>("Email")
-                .HasColumnType("nvarchar(255)")
-                .HasColumnName("email");
+                b.Property<bool>("IsPreorder")
+                    .HasColumnName("is_preorder");
 
-            b.Property<bool>("IsPreorder")
-                .HasColumnName("is_preorder");
+                b.Property<DateTime?>("ModifiedAt")
+                    .HasColumnType("timestamp with time zone") // Chỉ định kiểu dữ liệu cho PostgreSQL
+                    .HasColumnName("modified_at");
 
-            b.Property<DateTime?>("ModifiedAt")
-                .HasColumnType("timestamp with time zone") // Chỉ định kiểu dữ liệu cho PostgreSQL
-                .HasColumnName("modified_at");
+                b.Property<int?>("TransactionCode")
+                    .HasColumnType("int")
+                    .HasColumnName("transaction_code");
 
-            b.Property<string>("Note")
-                .HasColumnType("nvarchar(max)");
+                b.Property<DateTime?>("PaymentDate")
+                    .HasColumnType("timestamp with time zone") // Chỉ định kiểu dữ liệu cho PostgreSQL
+                    .HasColumnName("payment_date");
 
-            b.Property<int?>("TransactionCode")
-                .HasColumnType("int")
-                .HasColumnName("transaction_code");
+                b.Property<string>("PaymentMethod")
+                    .HasColumnType("varchar(255)")
+                    .HasColumnName("payment_method");
 
-            b.Property<DateTime?>("PaymentDate")
-                .HasColumnType("timestamp with time zone") // Chỉ định kiểu dữ liệu cho PostgreSQL
-                .HasColumnName("payment_date");
+                b.Property<string>("PhoneNumber")
+                    .IsRequired()
+                    .HasColumnType("nvarchar(20)")
+                    .HasColumnName("phone_number");
 
-            b.Property<string>("PaymentMethod")
-                .HasColumnType("varchar(255)")
-                .HasColumnName("payment_method");
+                b.Property<int>("PointAmount")
+                    .HasColumnType("int")
+                    .HasColumnName("point_amount");
 
-            b.Property<string>("PhoneNumber")
-                .IsRequired()
-                .HasColumnType("nvarchar(20)")
-                .HasColumnName("phone_number");
+                b.Property<string>("ReceiverName")
+                    .IsRequired()
+                    .HasColumnType("nvarchar(255)")
+                    .HasColumnName("receiver_name");
 
-            b.Property<int>("PointAmount")
-                .HasColumnType("int")
-                .HasColumnName("point_amount");
+                b.Property<string>("ShippingCode")
+                    .HasMaxLength(255)
+                    .HasColumnType("nvarchar(255)")
+                    .HasColumnName("shipping_code");
 
-            b.Property<string>("ReceiverName")
-                .IsRequired()
-                .HasColumnType("nvarchar(255)")
-                .HasColumnName("receiver_name");
+                b.Property<int>("ShippingFee")
+                    .HasColumnType("int")
+                    .HasColumnName("shipping_fee");
 
-            b.Property<string>("ShippingCode")
-                .HasMaxLength(255)
-                .HasColumnType("nvarchar(255)")
-                .HasColumnName("shipping_code");
+                b.Property<int>("StatusId")
+                    .HasColumnType("int")
+                    .HasColumnName("status_id");
 
-            b.Property<int>("ShippingFee")
-                .HasColumnType("int")
-                .HasColumnName("shipping_fee");
+                b.Property<int>("TotalAmount")
+                    .HasColumnType("int")
+                    .HasColumnName("total_amount");
 
-            b.Property<int>("StatusId")
-                .HasColumnType("int")
-                .HasColumnName("status_id");
+                b.Property<int>("TotalGram")
+                    .HasColumnType("int")
+                    .HasColumnName("total_gram");
 
-            b.Property<int>("TotalAmount")
-                .HasColumnType("int")
-                .HasColumnName("total_amount");
+                b.Property<int>("TotalPrice")
+                    .HasColumnType("int")
+                    .HasColumnName("total_price");
 
-            b.Property<int>("TotalGram")
-                .HasColumnType("int")
-                .HasColumnName("total_gram");
+                b.Property<int>("VoucherAmount")
+                    .HasColumnType("int")
+                    .HasColumnName("voucher_amount");
 
-            b.Property<int>("TotalPrice")
-                .HasColumnType("int")
-                .HasColumnName("total_price");
+                b.Property<string>("WardCode")
+                    .IsRequired()
+                    .HasMaxLength(255)
+                    .HasColumnType("nvarchar(255)")
+                    .HasColumnName("ward_code");
 
-            b.Property<int>("VoucherAmount")
-                .HasColumnType("int")
-                .HasColumnName("voucher_amount");
+                b.Property<byte[]>("Version")
+                    .HasColumnName("version")
+                    .IsRowVersion();
+            }
+            else
+            {
+                b.Property<DateTime>("CreatedAt")
+                    .HasColumnName("created_at");
 
-            b.Property<string>("WardCode")
-                .IsRequired()
-                .HasMaxLength(255)
-                .HasColumnType("nvarchar(255)")
-                .HasColumnName("ward_code");
+                b.Property<Guid?>("CustomerId")
+                    .HasColumnName("customer_id");
 
-            b.Property<byte[]>("Version")
-                .HasColumnName("version")
-                .IsRowVersion();
+                b.Property<DateTime?>("DeletedAt")
+                    .HasColumnName("deleted_at");
+
+                b.Property<int>("DistrictId")
+                    .HasColumnName("district_id");
+
+                b.Property<string>("Email")
+                    .HasColumnName("email");
+
+                b.Property<bool>("IsPreorder")
+                    .HasColumnName("is_preorder");
+
+                b.Property<DateTime?>("ModifiedAt")
+                    .HasColumnName("modified_at");
+
+                b.Property<long?>("TransactionCode")
+                    .HasColumnName("transaction_code");
+
+                b.Property<DateTime?>("PaymentDate")
+                    .HasColumnName("payment_date");
+
+                b.Property<string>("PaymentMethod")
+                    .HasColumnType("varchar(255)")
+                    .HasColumnName("payment_method");
+
+                b.Property<string>("PhoneNumber")
+                    .IsRequired()
+                    .HasColumnType("nvarchar(20)")
+                    .HasColumnName("phone_number");
+
+                b.Property<int>("PointAmount")
+                    .HasColumnName("point_amount");
+
+                b.Property<string>("ReceiverName")
+                    .IsRequired()
+                    .HasColumnType("nvarchar(255)")
+                    .HasColumnName("receiver_name");
+
+                b.Property<string>("ShippingCode")
+                    .HasColumnName("shipping_code");
+
+                b.Property<int>("ShippingFee")
+                    .HasColumnName("shipping_fee");
+
+                b.Property<int>("StatusId")
+                    .HasColumnName("status_id");
+
+                b.Property<int>("TotalAmount")
+                    .HasColumnName("total_amount");
+
+                b.Property<int>("TotalGram")
+                    .HasColumnName("total_gram");
+
+                b.Property<int>("TotalPrice")
+                    .HasColumnName("total_price");
+
+                b.Property<int>("VoucherAmount")
+                    .HasColumnName("voucher_amount");
+
+                b.Property<string>("WardCode")
+                    .HasColumnName("ward_code");
+
+                b.Property<string>("Address")
+                    .IsRequired()
+                    .HasColumnType("nvarchar(2000)")
+                    .HasColumnName("address");
+
+                b.Property<string>("Note")
+                    .HasColumnType("nvarchar(max)")
+                    .HasColumnName("note");
+
+                b.Property<byte[]>("Version")
+                    .IsRowVersion()
+                    .HasColumnName("version");
+            }
 
             b.HasKey("Id");
 
             b.HasIndex("CustomerId");
 
             b.HasIndex("StatusId");
-
-            b.ToTable("orders", null as string);
         });
 
-        modelBuilder.Entity("NET1814_MilkShop.Repositories.Data.Entities.OrderDetail", b =>
+        modelBuilder.Entity<OrderDetail>(b =>
         {
             b.Property<Guid>("OrderId")
                 .HasColumnType("uniqueidentifier")
@@ -488,46 +633,50 @@ public class AppDbContext : DbContext
                 .HasColumnType("uniqueidentifier")
                 .HasColumnName("product_id");
 
-            b.Property<DateTime>("CreatedAt")
-                .HasColumnType("timestamp with time zone") // Chỉ định kiểu dữ liệu cho PostgreSQL
-                .HasColumnName("created_at");
+            if (Database.IsNpgsql())
+            {
+                b.Property<DateTime>("CreatedAt")
+                    .HasColumnType("timestamp with time zone") // Chỉ định kiểu dữ liệu cho PostgreSQL
+                    .HasColumnName("created_at");
 
-            b.Property<DateTime?>("DeletedAt")
-                .HasColumnType("timestamp with time zone") // Chỉ định kiểu dữ liệu cho PostgreSQL
-                .HasColumnName("deleted_at");
+                b.Property<DateTime?>("DeletedAt")
+                    .HasColumnType("timestamp with time zone") // Chỉ định kiểu dữ liệu cho PostgreSQL
+                    .HasColumnName("deleted_at");
 
-            b.Property<int>("ItemPrice")
-                .HasColumnType("int")
-                .HasColumnName("item_price");
+                b.Property<int>("ItemPrice")
+                    .HasColumnType("int")
+                    .HasColumnName("item_price");
 
-            b.Property<DateTime?>("ModifiedAt")
-                .HasColumnType("timestamp with time zone") // Chỉ định kiểu dữ liệu cho PostgreSQL
-                .HasColumnName("modified_at");
+                b.Property<DateTime?>("ModifiedAt")
+                    .HasColumnType("timestamp with time zone") // Chỉ định kiểu dữ liệu cho PostgreSQL
+                    .HasColumnName("modified_at");
 
-            b.Property<string>("ProductName")
-                .IsRequired()
-                .HasColumnType("nvarchar(255)")
-                .HasColumnName("product_name");
+                b.Property<string>("ProductName")
+                    .IsRequired()
+                    .HasColumnType("nvarchar(255)")
+                    .HasColumnName("product_name");
 
-            b.Property<int>("Quantity")
-                .HasColumnType("int");
+                b.Property<string>("Thumbnail")
+                    .HasColumnType("nvarchar(255)")
+                    .HasColumnName("thumbnail");
 
-            b.Property<string>("Thumbnail")
-                .HasColumnType("nvarchar(255)")
-                .HasColumnName("thumbnail");
-
-            b.Property<int>("UnitPrice")
-                .HasColumnType("int")
-                .HasColumnName("unit_price");
+                b.Property<int>("UnitPrice")
+                    .HasColumnType("int")
+                    .HasColumnName("unit_price");
+            }
+            else
+            {
+                b.Property<string>("ProductName")
+                    .IsRequired()
+                    .HasColumnType("nvarchar(255)");
+            }
 
             b.HasKey("OrderId", "ProductId");
 
             b.HasIndex("ProductId");
-
-            b.ToTable("order_details", null as string);
         });
 
-        modelBuilder.Entity("NET1814_MilkShop.Repositories.Data.Entities.OrderLog", b =>
+        modelBuilder.Entity<OrderLog>(b =>
         {
             b.Property<int>("Id")
                 .ValueGeneratedOnAdd()
@@ -561,31 +710,47 @@ public class AppDbContext : DbContext
             b.HasKey("Id");
 
             b.HasIndex("OrderId");
-
-            b.ToTable("order_logs");
         });
 
-        modelBuilder.Entity("NET1814_MilkShop.Repositories.Data.Entities.OrderStatus", b =>
+        modelBuilder.Entity<OrderStatus>(b =>
         {
             b.Property<int>("Id")
                 .ValueGeneratedOnAdd()
                 .HasColumnType("int");
 
-            b.Property<DateTime>("CreatedAt")
-                .HasColumnType("timestamp with time zone") // Chỉ định kiểu dữ liệu cho PostgreSQL
-                .HasColumnName("created_at");
+            if (Database.IsNpgsql())
+            {
+                b.Property<DateTime>("CreatedAt")
+                    .HasColumnType("timestamp with time zone") // Chỉ định kiểu dữ liệu cho PostgreSQL
+                    .HasColumnName("created_at");
 
-            b.Property<DateTime?>("DeletedAt")
-                .HasColumnType("timestamp with time zone") // Chỉ định kiểu dữ liệu cho PostgreSQL
-                .HasColumnName("deleted_at");
+                b.Property<DateTime?>("DeletedAt")
+                    .HasColumnType("timestamp with time zone") // Chỉ định kiểu dữ liệu cho PostgreSQL
+                    .HasColumnName("deleted_at");
 
-            b.Property<string>("Description")
-                .HasColumnName("description")
-                .HasColumnType("nvarchar(2000)");
+                b.Property<string>("Description")
+                    .HasColumnName("description")
+                    .HasColumnType("nvarchar(2000)");
 
-            b.Property<DateTime?>("ModifiedAt")
-                .HasColumnType("timestamp with time zone") // Chỉ định kiểu dữ liệu cho PostgreSQL
-                .HasColumnName("modified_at");
+                b.Property<DateTime?>("ModifiedAt")
+                    .HasColumnType("timestamp with time zone") // Chỉ định kiểu dữ liệu cho PostgreSQL
+                    .HasColumnName("modified_at");
+            }
+            else
+            {
+                b.Property<DateTime>("CreatedAt")
+                    .HasColumnName("created_at");
+
+                b.Property<DateTime?>("DeletedAt")
+                    .HasColumnName("deleted_at");
+
+                b.Property<string>("Description")
+                    .HasColumnType("nvarchar(2000)")
+                    .HasColumnName("description");
+
+                b.Property<DateTime?>("ModifiedAt")
+                    .HasColumnName("modified_at");
+            }
 
             b.Property<string>("Name")
                 .IsRequired()
@@ -593,106 +758,146 @@ public class AppDbContext : DbContext
                 .UseCollation("Latin1_General_CI_AS");
 
             b.HasKey("Id");
-
-            b.ToTable("order_statuses", null as string);
         });
 
-        modelBuilder.Entity("NET1814_MilkShop.Repositories.Data.Entities.Post", b =>
+        modelBuilder.Entity<Post>(b =>
         {
             b.Property<Guid>("Id")
                 .ValueGeneratedOnAdd()
                 .HasColumnType("uniqueidentifier");
 
-            b.Property<Guid>("AuthorId")
-                .HasColumnType("uniqueidentifier")
-                .HasColumnName("author_id");
+            if (Database.IsNpgsql())
+            {
+                b.Property<Guid>("AuthorId")
+                    .HasColumnType("uniqueidentifier")
+                    .HasColumnName("author_id");
 
-            b.Property<string>("Content")
-                .IsRequired()
-                .HasColumnType("nvarchar(max)")
-                .HasColumnName("content");
+                b.Property<string>("Content")
+                    .IsRequired()
+                    .HasColumnType("nvarchar(max)")
+                    .HasColumnName("content");
 
-            b.Property<DateTime>("CreatedAt")
-                .HasColumnType("timestamp with time zone") // Chỉ định kiểu dữ liệu cho PostgreSQL
-                .HasColumnName("created_at");
+                b.Property<DateTime>("CreatedAt")
+                    .HasColumnType("timestamp with time zone") // Chỉ định kiểu dữ liệu cho PostgreSQL
+                    .HasColumnName("created_at");
 
-            b.Property<DateTime?>("DeletedAt")
-                .HasColumnType("timestamp with time zone") // Chỉ định kiểu dữ liệu cho PostgreSQL
-                .HasColumnName("deleted_at");
+                b.Property<DateTime?>("DeletedAt")
+                    .HasColumnType("timestamp with time zone") // Chỉ định kiểu dữ liệu cho PostgreSQL
+                    .HasColumnName("deleted_at");
 
-            b.Property<bool>("IsActive")
-                .HasColumnName("is_active");
+                b.Property<bool>("IsActive")
+                    .HasColumnName("is_active");
 
-            b.Property<string>("MetaDescription")
-                .IsRequired()
-                .HasColumnType("nvarchar(max)")
-                .HasColumnName("meta_description");
+                b.Property<string>("MetaDescription")
+                    .IsRequired()
+                    .HasColumnType("nvarchar(max)")
+                    .HasColumnName("meta_description");
 
-            b.Property<string>("MetaTitle")
-                .IsRequired()
-                .HasColumnType("nvarchar(255)")
-                .HasColumnName("meta_title");
+                b.Property<string>("MetaTitle")
+                    .IsRequired()
+                    .HasColumnType("nvarchar(255)")
+                    .HasColumnName("meta_title");
 
-            b.Property<DateTime?>("ModifiedAt")
-                            .HasColumnType("timestamp with time zone") // Chỉ định kiểu dữ liệu cho PostgreSQL
-                            .HasColumnName("modified_at");
+                b.Property<DateTime?>("ModifiedAt")
+                    .HasColumnType("timestamp with time zone") // Chỉ định kiểu dữ liệu cho PostgreSQL
+                    .HasColumnName("modified_at");
 
-            b.Property<string>("Thumbnail")
-                .HasColumnType("nvarchar(255)")
-                .HasColumnName("thumbnail");
+                b.Property<string>("Thumbnail")
+                    .HasColumnType("nvarchar(255)")
+                    .HasColumnName("thumbnail");
 
-            b.Property<string>("Title")
-                .IsRequired()
-                .HasColumnType("nvarchar(255)")
-                .HasColumnName("title");
+                b.Property<string>("Title")
+                    .IsRequired()
+                    .HasColumnType("nvarchar(255)")
+                    .HasColumnName("title");
+            }
+            else
+            {
+                b.Property<Guid>("AuthorId")
+                    .HasColumnName("author_id");
+
+                b.Property<string>("Content")
+                    .IsRequired()
+                    .HasColumnType("nvarchar(max)")
+                    .HasColumnName("content");
+
+                b.Property<DateTime>("CreatedAt")
+                    .HasColumnName("created_at");
+
+                b.Property<DateTime?>("DeletedAt")
+                    .HasColumnName("deleted_at");
+
+                b.Property<bool>("IsActive")
+                    .HasColumnName("is_active");
+
+                b.Property<string>("MetaDescription")
+                    .IsRequired()
+                    .HasColumnType("nvarchar(max)")
+                    .HasColumnName("meta_description");
+
+                b.Property<string>("MetaTitle")
+                    .IsRequired()
+                    .HasColumnType("nvarchar(255)")
+                    .HasColumnName("meta_title");
+
+                b.Property<DateTime?>("ModifiedAt")
+                    .HasColumnName("modified_at");
+
+                b.Property<string>("Thumbnail")
+                    .HasColumnName("thumbnail");
+
+                b.Property<string>("Title")
+                    .IsRequired()
+                    .HasColumnType("nvarchar(255)")
+                    .HasColumnName("title");
+            }
 
             b.HasKey("Id");
 
             b.HasIndex("AuthorId");
-
-            b.ToTable("posts");
         });
 
-        modelBuilder.Entity("NET1814_MilkShop.Repositories.Data.Entities.PreorderProduct", b =>
+        modelBuilder.Entity<PreorderProduct>(b =>
         {
             b.Property<Guid>("ProductId")
                 .HasColumnType("uniqueidentifier")
                 .HasColumnName("product_id");
 
-            b.Property<DateTime>("CreatedAt")
-                .HasColumnType("timestamp with time zone") // Chỉ định kiểu dữ liệu cho PostgreSQL
-                .HasColumnName("created_at");
+            if (Database.IsNpgsql())
+            {
+                b.Property<DateTime>("CreatedAt")
+                    .HasColumnType("timestamp with time zone") // Chỉ định kiểu dữ liệu cho PostgreSQL
+                    .HasColumnName("created_at");
 
-            b.Property<DateTime?>("DeletedAt")
-                .HasColumnType("timestamp with time zone") // Chỉ định kiểu dữ liệu cho PostgreSQL
-                .HasColumnName("deleted_at");
+                b.Property<DateTime?>("DeletedAt")
+                    .HasColumnType("timestamp with time zone") // Chỉ định kiểu dữ liệu cho PostgreSQL
+                    .HasColumnName("deleted_at");
 
-            b.Property<DateTime>("EndDate")
-                .HasColumnType("timestamp with time zone") // Chỉ định kiểu dữ liệu cho PostgreSQL
-                .HasColumnName("end_date");
+                b.Property<DateTime>("EndDate")
+                    .HasColumnType("timestamp with time zone") // Chỉ định kiểu dữ liệu cho PostgreSQL
+                    .HasColumnName("end_date");
 
-            b.Property<int>("ExpectedPreOrderDays")
-                .HasColumnType("int")
-                .HasColumnName("expected_preorder_days");
+                b.Property<int>("ExpectedPreOrderDays")
+                    .HasColumnType("int")
+                    .HasColumnName("expected_preorder_days");
 
-            b.Property<int>("MaxPreOrderQuantity")
-                .HasColumnType("int")
-                .HasColumnName("max_preorder_quantity");
+                b.Property<int>("MaxPreOrderQuantity")
+                    .HasColumnType("int")
+                    .HasColumnName("max_preorder_quantity");
 
-            b.Property<DateTime?>("ModifiedAt")
-                .HasColumnType("timestamp with time zone") // Chỉ định kiểu dữ liệu cho PostgreSQL
-                .HasColumnName("modified_at");
+                b.Property<DateTime?>("ModifiedAt")
+                    .HasColumnType("timestamp with time zone") // Chỉ định kiểu dữ liệu cho PostgreSQL
+                    .HasColumnName("modified_at");
 
-            b.Property<DateTime>("StartDate")
-                .HasColumnType("timestamp with time zone") // Chỉ định kiểu dữ liệu cho PostgreSQL
-                .HasColumnName("start_date");
+                b.Property<DateTime>("StartDate")
+                    .HasColumnType("timestamp with time zone") // Chỉ định kiểu dữ liệu cho PostgreSQL
+                    .HasColumnName("start_date");
+            }
 
             b.HasKey("ProductId");
-
-            b.ToTable("preorder_products", null as string);
         });
 
-        modelBuilder.Entity("NET1814_MilkShop.Repositories.Data.Entities.Product", b =>
+        modelBuilder.Entity<Product>(b =>
         {
             // row version
             b.Property<byte[]>("Version")
@@ -703,67 +908,125 @@ public class AppDbContext : DbContext
                 .ValueGeneratedOnAdd()
                 .HasColumnType("uniqueidentifier");
 
-            b.Property<int>("BrandId")
-                .HasColumnType("int")
-                .HasColumnName("brand_id");
+            if (Database.IsNpgsql())
+            {
+                b.Property<int>("BrandId")
+                    .HasColumnType("int")
+                    .HasColumnName("brand_id");
 
-            b.Property<int>("CategoryId")
-                .HasColumnType("int")
-                .HasColumnName("category_id");
+                b.Property<int>("CategoryId")
+                    .HasColumnType("int")
+                    .HasColumnName("category_id");
 
-            b.Property<DateTime>("CreatedAt")
-                .HasColumnType("timestamp with time zone") // Chỉ định kiểu dữ liệu cho PostgreSQL
-                .HasColumnName("created_at");
+                b.Property<DateTime>("CreatedAt")
+                    .HasColumnType("timestamp with time zone") // Chỉ định kiểu dữ liệu cho PostgreSQL
+                    .HasColumnName("created_at");
 
-            b.Property<DateTime?>("DeletedAt")
-                .HasColumnType("timestamp with time zone") // Chỉ định kiểu dữ liệu cho PostgreSQL
-                .HasColumnName("deleted_at");
+                b.Property<DateTime?>("DeletedAt")
+                    .HasColumnType("timestamp with time zone") // Chỉ định kiểu dữ liệu cho PostgreSQL
+                    .HasColumnName("deleted_at");
 
-            b.Property<string>("Description")
-                .HasColumnType("nvarchar(MAX)")
-                .HasColumnName("description")
-                .UseCollation("Latin1_General_CI_AI");
+                b.Property<string>("Description")
+                    .HasColumnType("nvarchar(MAX)")
+                    .HasColumnName("description")
+                    .UseCollation("Latin1_General_CI_AI");
 
-            b.Property<bool>("IsActive")
-                .HasColumnName("is_active");
+                b.Property<bool>("IsActive")
+                    .HasColumnName("is_active");
 
-            b.Property<DateTime?>("ModifiedAt")
-                .HasColumnType("timestamp with time zone") // Chỉ định kiểu dữ liệu cho PostgreSQL
-                .HasColumnName("modified_at");
+                b.Property<DateTime?>("ModifiedAt")
+                    .HasColumnType("timestamp with time zone") // Chỉ định kiểu dữ liệu cho PostgreSQL
+                    .HasColumnName("modified_at");
 
-            b.Property<string>("Name")
-                .IsRequired()
-                .HasColumnType("nvarchar(255)")
-                .HasColumnName("name")
-                .UseCollation("Latin1_General_CI_AI");
+                b.Property<string>("Name")
+                    .IsRequired()
+                    .HasColumnType("nvarchar(255)")
+                    .HasColumnName("name")
+                    .UseCollation("Latin1_General_CI_AI");
 
-            b.Property<int>("OriginalPrice")
-                .ValueGeneratedOnAdd()
-                .HasColumnType("int")
-                .HasDefaultValue(0)
-                .HasColumnName("original_price");
+                b.Property<int>("OriginalPrice")
+                    .ValueGeneratedOnAdd()
+                    .HasColumnType("int")
+                    .HasDefaultValue(0)
+                    .HasColumnName("original_price");
 
-            b.Property<int>("Quantity")
-                .HasColumnType("int")
-                .HasColumnName("quantity");
+                b.Property<int>("Quantity")
+                    .HasColumnType("int")
+                    .HasColumnName("quantity");
 
-            b.Property<int>("SalePrice")
-                .ValueGeneratedOnAdd()
-                .HasColumnType("int")
-                .HasDefaultValue(0)
-                .HasColumnName("sale_price");
+                b.Property<int>("SalePrice")
+                    .ValueGeneratedOnAdd()
+                    .HasColumnType("int")
+                    .HasDefaultValue(0)
+                    .HasColumnName("sale_price");
 
-            b.Property<int>("StatusId")
-                .HasColumnType("int")
-                .HasColumnName("status_id");
+                b.Property<int>("StatusId")
+                    .HasColumnType("int")
+                    .HasColumnName("status_id");
 
-            b.Property<string>("Thumbnail")
-                .HasColumnType("nvarchar(255)")
-                .HasColumnName("thumbnail");
+                b.Property<string>("Thumbnail")
+                    .HasColumnType("nvarchar(255)")
+                    .HasColumnName("thumbnail");
 
-            b.Property<int>("UnitId")
-                .HasColumnType("int")
-                .HasColumnName("unit_id");
+                b.Property<int>("UnitId")
+                    .HasColumnType("int")
+                    .HasColumnName("unit_id");
+            }
+            else
+            {
+                b.Property<int>("BrandId")
+                    .HasColumnName("brand_id");
+
+                b.Property<int>("CategoryId")
+                    .HasColumnName("category_id");
+
+                b.Property<DateTime>("CreatedAt")
+                    .HasColumnName("created_at");
+
+                b.Property<DateTime?>("DeletedAt")
+                    .HasColumnName("deleted_at");
+
+                b.Property<string>("Description")
+                    .HasColumnType("nvarchar(MAX)")
+                    .HasColumnName("description")
+                    .UseCollation("Latin1_General_CI_AI");
+
+                b.Property<bool>("IsActive")
+                    .HasColumnName("is_active");
+
+                b.Property<DateTime?>("ModifiedAt")
+                    .HasColumnName("modified_at");
+
+                b.Property<string>("Name")
+                    .IsRequired()
+                    .HasColumnType("nvarchar(255)")
+                    .HasColumnName("name")
+                    .UseCollation("Latin1_General_CI_AI");
+
+                b.Property<int>("OriginalPrice")
+                    .ValueGeneratedOnAdd()
+                    .HasColumnType("int")
+                    .HasDefaultValue(0)
+                    .HasColumnName("original_price");
+
+                b.Property<int>("Quantity")
+                    .HasColumnName("quantity");
+
+                b.Property<int>("SalePrice")
+                    .ValueGeneratedOnAdd()
+                    .HasColumnType("int")
+                    .HasDefaultValue(0)
+                    .HasColumnName("sale_price");
+
+                b.Property<int>("StatusId")
+                    .HasColumnName("status_id");
+
+                b.Property<string>("Thumbnail")
+                    .HasColumnName("thumbnail");
+
+                b.Property<int>("UnitId")
+                    .HasColumnName("unit_id");
+            }
 
             b.HasKey("Id");
 
@@ -774,154 +1037,199 @@ public class AppDbContext : DbContext
             b.HasIndex("StatusId");
 
             b.HasIndex("UnitId");
-
-            b.ToTable("products", null as string);
         });
 
-        modelBuilder.Entity("NET1814_MilkShop.Repositories.Data.Entities.ProductAttribute", b =>
+        modelBuilder.Entity<ProductAttribute>(b =>
         {
             b.Property<int>("Id")
                 .ValueGeneratedOnAdd()
                 .HasColumnType("int");
 
-            b.Property<DateTime>("CreatedAt")
-                .HasColumnType("timestamp with time zone") // Chỉ định kiểu dữ liệu cho PostgreSQL
-                .HasColumnName("created_at");
+            if (Database.IsNpgsql())
+            {
+                b.Property<DateTime>("CreatedAt")
+                    .HasColumnType("timestamp with time zone") // Chỉ định kiểu dữ liệu cho PostgreSQL
+                    .HasColumnName("created_at");
 
-            b.Property<DateTime?>("DeletedAt")
-                .HasColumnType("timestamp with time zone") // Chỉ định kiểu dữ liệu cho PostgreSQL
-                .HasColumnName("deleted_at");
+                b.Property<DateTime?>("DeletedAt")
+                    .HasColumnType("timestamp with time zone") // Chỉ định kiểu dữ liệu cho PostgreSQL
+                    .HasColumnName("deleted_at");
 
-            b.Property<string>("Description")
-                .HasColumnName("description")
-                .HasColumnType("nvarchar(2000)");
+                b.Property<string>("Description")
+                    .HasColumnName("description")
+                    .HasColumnType("nvarchar(2000)");
 
-            b.Property<bool>("IsActive")
-                .HasColumnName("is_active");
+                b.Property<bool>("IsActive")
+                    .HasColumnName("is_active");
 
-            b.Property<DateTime?>("ModifiedAt")
-                .HasColumnType("timestamp with time zone") // Chỉ định kiểu dữ liệu cho PostgreSQL
-                .HasColumnName("modified_at");
+                b.Property<DateTime?>("ModifiedAt")
+                    .HasColumnType("timestamp with time zone") // Chỉ định kiểu dữ liệu cho PostgreSQL
+                    .HasColumnName("modified_at");
+            }
+            else
+            {
+                b.Property<DateTime>("CreatedAt")
+                    .HasColumnName("created_at");
+
+                b.Property<DateTime?>("DeletedAt")
+                    .HasColumnName("deleted_at");
+
+                b.Property<string>("Description")
+                    .HasColumnType("nvarchar(2000)")
+                    .HasColumnName("description");
+
+                b.Property<bool>("IsActive")
+                    .HasColumnName("is_active");
+
+                b.Property<DateTime?>("ModifiedAt")
+                    .HasColumnName("modified_at");
+            }
 
             b.Property<string>("Name")
                 .IsRequired()
                 .HasColumnType("nvarchar(255)")
+                .HasColumnName("name")
                 .UseCollation("Latin1_General_CI_AS");
 
             b.HasKey("Id");
-
-            b.ToTable("product_attributes", null as string);
         });
 
-        modelBuilder.Entity("NET1814_MilkShop.Repositories.Data.Entities.ProductAttributeValue", b =>
+        modelBuilder.Entity<ProductAttributeValue>(b =>
         {
-            b.Property<Guid>("ProductId")
-                .HasColumnType("uniqueidentifier")
-                .HasColumnName("product_id");
+            if (Database.IsNpgsql())
+            {
+                // Existing Npgsql mapping
+            }
+            else
+            {
+                b.Property<Guid>("ProductId")
+                    .HasColumnName("product_id");
 
-            b.Property<int>("AttributeId")
-                .HasColumnType("int")
-                .HasColumnName("attribute_id");
+                b.Property<int>("AttributeId")
+                    .HasColumnName("attribute_id");
 
-            b.Property<DateTime>("CreatedAt")
-                .HasColumnType("timestamp with time zone") // Chỉ định kiểu dữ liệu cho PostgreSQL
-                .HasColumnName("created_at");
+                b.Property<DateTime>("CreatedAt")
+                    .HasColumnName("created_at");
 
-            b.Property<DateTime?>("DeletedAt")
-                .HasColumnType("timestamp with time zone") // Chỉ định kiểu dữ liệu cho PostgreSQL
-                .HasColumnName("deleted_at");
+                b.Property<DateTime?>("DeletedAt")
+                    .HasColumnName("deleted_at");
 
-            b.Property<DateTime?>("ModifiedAt")
-                .HasColumnType("timestamp with time zone") // Chỉ định kiểu dữ liệu cho PostgreSQL
-                .HasColumnName("modified_at");
+                b.Property<DateTime?>("ModifiedAt")
+                    .HasColumnName("modified_at");
 
-            b.Property<string>("Value")
-                .HasColumnType("nvarchar(2000)");
+                b.Property<string>("Value")
+                    .IsRequired()
+                    .HasColumnType("nvarchar(2000)")
+                    .HasColumnName("value");
+            }
 
             b.HasKey("ProductId", "AttributeId");
 
             b.HasIndex("AttributeId");
-
-            b.ToTable("product_attribute_values", null as string);
         });
 
-        modelBuilder.Entity("NET1814_MilkShop.Repositories.Data.Entities.ProductImage", b =>
+        modelBuilder.Entity<ProductImage>(b =>
         {
             b.Property<int>("Id")
                 .ValueGeneratedOnAdd()
                 .HasColumnType("int");
 
-            b.Property<DateTime>("CreatedAt")
-                .HasColumnType("timestamp with time zone") // Chỉ định kiểu dữ liệu cho PostgreSQL
-                .HasColumnName("created_at");
+            if (Database.IsNpgsql())
+            {
+                b.Property<DateTime>("CreatedAt")
+                    .HasColumnType("timestamp with time zone") // Chỉ định kiểu dữ liệu cho PostgreSQL
+                    .HasColumnName("created_at");
 
-            b.Property<DateTime?>("DeletedAt")
-                .HasColumnType("timestamp with time zone") // Chỉ định kiểu dữ liệu cho PostgreSQL
-                .HasColumnName("deleted_at");
+                b.Property<DateTime?>("DeletedAt")
+                    .HasColumnType("timestamp with time zone") // Chỉ định kiểu dữ liệu cho PostgreSQL
+                    .HasColumnName("deleted_at");
 
-            b.Property<string>("ImageUrl")
-                .IsRequired()
-                .HasColumnType("nvarchar(255)")
-                .HasColumnName("image_url");
+                b.Property<string>("ImageUrl")
+                    .IsRequired()
+                    .HasColumnType("nvarchar(255)")
+                    .HasColumnName("image_url");
 
-            b.Property<bool>("IsActive")
-                .HasColumnName("is_active");
+                b.Property<bool>("IsActive")
+                    .HasColumnName("is_active");
 
-            b.Property<DateTime?>("ModifiedAt")
-                .HasColumnType("timestamp with time zone") // Chỉ định kiểu dữ liệu cho PostgreSQL
-                .HasColumnName("modified_at");
+                b.Property<DateTime?>("ModifiedAt")
+                    .HasColumnType("timestamp with time zone") // Chỉ định kiểu dữ liệu cho PostgreSQL
+                    .HasColumnName("modified_at");
 
-            b.Property<Guid?>("ProductId")
-                .HasColumnType("uniqueidentifier")
-                .HasColumnName("product_id");
+                b.Property<Guid?>("ProductId")
+                    .HasColumnType("uniqueidentifier")
+                    .HasColumnName("product_id");
+            }
+            else
+            {
+                b.Property<DateTime>("CreatedAt")
+                    .HasColumnName("created_at");
+
+                b.Property<DateTime?>("DeletedAt")
+                    .HasColumnName("deleted_at");
+
+                b.Property<string>("ImageUrl")
+                    .IsRequired()
+                    .HasColumnType("nvarchar(255)")
+                    .HasColumnName("image_url");
+
+                b.Property<bool>("IsActive")
+                    .HasColumnName("is_active");
+
+                b.Property<DateTime?>("ModifiedAt")
+                    .HasColumnName("modified_at");
+
+                b.Property<Guid?>("ProductId")
+                    .HasColumnName("product_id");
+            }
 
             b.HasKey("Id");
 
             b.HasIndex("ProductId");
-
-            b.ToTable("product_images", null as string);
         });
 
-        modelBuilder.Entity("NET1814_MilkShop.Repositories.Data.Entities.ProductReview", b =>
+        modelBuilder.Entity<ProductReview>(b =>
         {
             b.Property<int>("Id")
                 .ValueGeneratedOnAdd()
                 .HasColumnType("int");
 
-            b.Property<DateTime>("CreatedAt")
-                .HasColumnType("timestamp with time zone") // Chỉ định kiểu dữ liệu cho PostgreSQL
-                .HasColumnName("created_at");
+            if (Database.IsNpgsql())
+            {
+                // Existing Npgsql mapping
+            }
+            else
+            {
+                b.Property<DateTime>("CreatedAt")
+                    .HasColumnName("created_at");
 
-            b.Property<Guid>("CustomerId")
-                .HasColumnType("uniqueidentifier")
-                .HasColumnName("customer_id");
+                b.Property<Guid>("CustomerId")
+                    .HasColumnName("customer_id");
 
-            b.Property<DateTime?>("DeletedAt")
-                .HasColumnType("timestamp with time zone") // Chỉ định kiểu dữ liệu cho PostgreSQL
-                .HasColumnName("deleted_at");
+                b.Property<DateTime?>("DeletedAt")
+                    .HasColumnName("deleted_at");
 
-            b.Property<bool>("IsActive")
-                .HasColumnName("is_active");
+                b.Property<bool>("IsActive")
+                    .HasColumnName("is_active");
 
-            b.Property<DateTime?>("ModifiedAt")
-                .HasColumnType("timestamp with time zone") // Chỉ định kiểu dữ liệu cho PostgreSQL
-                .HasColumnName("modified_at");
+                b.Property<DateTime?>("ModifiedAt")
+                    .HasColumnName("modified_at");
 
-            b.Property<Guid>("OrderId")
-                .HasColumnType("uniqueidentifier")
-                .HasColumnName("order_id");
+                b.Property<Guid>("OrderId")
+                    .HasColumnName("order_id");
 
-            b.Property<Guid>("ProductId")
-                .HasColumnType("uniqueidentifier")
-                .HasColumnName("product_id");
+                b.Property<Guid>("ProductId")
+                    .HasColumnName("product_id");
 
-            b.Property<int>("Rating")
-                .HasColumnType("int");
+                b.Property<int>("Rating")
+                    .HasColumnName("rating");
 
-            b.Property<string>("Review")
-                .IsRequired()
-                .HasMaxLength(255)
-                .HasColumnType("nvarchar(255)");
+                b.Property<string>("Review")
+                    .IsRequired()
+                    .HasMaxLength(255)
+                    .HasColumnType("nvarchar(255)")
+                    .HasColumnName("review");
+            }
 
             b.HasKey("Id");
 
@@ -930,39 +1238,58 @@ public class AppDbContext : DbContext
             b.HasIndex("OrderId");
 
             b.HasIndex("ProductId");
-
-            b.ToTable("product_reviews", null as string);
         });
 
-        modelBuilder.Entity("NET1814_MilkShop.Repositories.Data.Entities.ProductStatus", b =>
+        modelBuilder.Entity<ProductStatus>(b =>
         {
             b.Property<int>("Id")
                 .ValueGeneratedOnAdd()
                 .HasColumnType("int");
 
-            b.Property<DateTime>("CreatedAt")
-                .HasColumnType("timestamp with time zone") // Chỉ định kiểu dữ liệu cho PostgreSQL
-                .HasColumnName("created_at");
+            if (Database.IsNpgsql())
+            {
+                b.Property<DateTime>("CreatedAt")
+                    .HasColumnType("timestamp with time zone") // Chỉ định kiểu dữ liệu cho PostgreSQL
+                    .HasColumnName("created_at");
 
-            b.Property<DateTime?>("DeletedAt")
-                .HasColumnType("timestamp with time zone") // Chỉ định kiểu dữ liệu cho PostgreSQL
-                .HasColumnName("deleted_at");
+                b.Property<DateTime?>("DeletedAt")
+                    .HasColumnType("timestamp with time zone") // Chỉ định kiểu dữ liệu cho PostgreSQL
+                    .HasColumnName("deleted_at");
 
-            b.Property<string>("Description")
-                .HasColumnName("description")
-                .HasColumnType("nvarchar(2000)");
+                b.Property<string>("Description")
+                    .HasColumnName("Description")
+                    .HasColumnType("nvarchar(2000)");
 
-            b.Property<DateTime?>("ModifiedAt")
-                .HasColumnType("timestamp with time zone") // Chỉ định kiểu dữ liệu cho PostgreSQL
-                .HasColumnName("modified_at");
+                b.Property<DateTime?>("ModifiedAt")
+                    .HasColumnType("timestamp with time zone") // Chỉ định kiểu dữ liệu cho PostgreSQL
+                    .HasColumnName("modified_at");
 
-            b.Property<string>("Name")
-                .IsRequired()
-                .HasColumnType("nvarchar(255)");
+                b.Property<string>("Name")
+                    .IsRequired()
+                    .HasColumnType("nvarchar(255)");
+            }
+            else
+            {
+                b.Property<DateTime>("CreatedAt")
+                    .HasColumnName("created_at");
+
+                b.Property<DateTime?>("DeletedAt")
+                    .HasColumnName("deleted_at");
+
+                b.Property<string>("Description")
+                    .HasColumnType("nvarchar(2000)")
+                    .HasColumnName("description");
+
+                b.Property<DateTime?>("ModifiedAt")
+                    .HasColumnName("modified_at");
+
+                b.Property<string>("Name")
+                    .IsRequired()
+                    .HasColumnType("nvarchar(255)")
+                    .HasColumnName("name");
+            }
 
             b.HasKey("Id");
-
-            b.ToTable("product_statuses", null as string);
         });
 
         modelBuilder.Entity("NET1814_MilkShop.Repositories.Data.Entities.Report", b =>
@@ -971,37 +1298,66 @@ public class AppDbContext : DbContext
                 .ValueGeneratedOnAdd()
                 .HasColumnType("uniqueidentifier");
 
-            b.Property<DateTime>("CreatedAt")
-                .HasColumnType("timestamp with time zone") // Chỉ định kiểu dữ liệu cho PostgreSQL
-                .HasColumnName("created_at");
+            if (Database.IsNpgsql())
+            {
+                b.Property<DateTime>("CreatedAt")
+                    .HasColumnType("timestamp with time zone") // Chỉ định kiểu dữ liệu cho PostgreSQL
+                    .HasColumnName("created_at");
 
-            b.Property<Guid>("CustomerId")
-                .HasColumnType("uniqueidentifier")
-                .HasColumnName("customer_id");
+                b.Property<Guid>("CustomerId")
+                    .HasColumnType("uniqueidentifier")
+                    .HasColumnName("customer_id");
 
-            b.Property<DateTime?>("DeletedAt")
-                .HasColumnType("timestamp with time zone") // Chỉ định kiểu dữ liệu cho PostgreSQL
-                .HasColumnName("deleted_at");
+                b.Property<DateTime?>("DeletedAt")
+                    .HasColumnType("timestamp with time zone") // Chỉ định kiểu dữ liệu cho PostgreSQL
+                    .HasColumnName("deleted_at");
 
-            b.Property<DateTime?>("ModifiedAt")
-                .HasColumnType("timestamp with time zone") // Chỉ định kiểu dữ liệu cho PostgreSQL
-                .HasColumnName("modified_at");
+                b.Property<DateTime?>("ModifiedAt")
+                    .HasColumnType("timestamp with time zone") // Chỉ định kiểu dữ liệu cho PostgreSQL
+                    .HasColumnName("modified_at");
 
-            b.Property<Guid>("ProductId")
-                .HasColumnType("uniqueidentifier")
-                .HasColumnName("product_id");
+                b.Property<Guid>("ProductId")
+                    .HasColumnType("uniqueidentifier")
+                    .HasColumnName("product_id");
 
-            b.Property<int>("ReportTypeId")
-                .HasColumnType("int")
-                .HasColumnName("report_type_id");
+                b.Property<int>("ReportTypeId")
+                    .HasColumnType("int")
+                    .HasColumnName("report_type_id");
 
-            b.Property<DateTime?>("ResolvedAt")
-                .HasColumnType("timestamp with time zone") // Chỉ định kiểu dữ liệu cho PostgreSQL
-                .HasColumnName("resolved_at");
+                b.Property<DateTime?>("ResolvedAt")
+                    .HasColumnType("timestamp with time zone") // Chỉ định kiểu dữ liệu cho PostgreSQL
+                    .HasColumnName("resolved_at");
 
-            b.Property<Guid>("ResolvedBy")
-                .HasColumnType("uniqueidentifier")
-                .HasColumnName("resolved_by");
+                b.Property<Guid>("ResolvedBy")
+                    .HasColumnType("uniqueidentifier")
+                    .HasColumnName("resolved_by");
+            }
+            else
+            {
+                b.Property<DateTime>("CreatedAt")
+                    .HasColumnName("created_at");
+
+                b.Property<Guid>("CustomerId")
+                    .HasColumnName("customer_id");
+
+                b.Property<DateTime?>("DeletedAt")
+                    .HasColumnName("deleted_at");
+
+                b.Property<DateTime?>("ModifiedAt")
+                    .HasColumnName("modified_at");
+
+                b.Property<Guid>("ProductId")
+                    .HasColumnName("product_id");
+
+                b.Property<int>("ReportTypeId")
+                    .HasColumnName("report_type_id");
+
+                b.Property<DateTime?>("ResolvedAt")
+                    .HasColumnName("resolved_at");
+
+                b.Property<Guid>("ResolvedBy")
+                    .HasColumnName("resolved_by");
+            }
 
             b.HasKey("Id");
 
@@ -1010,42 +1366,46 @@ public class AppDbContext : DbContext
             b.HasIndex("ProductId");
 
             b.HasIndex("ReportTypeId");
-
-            b.ToTable("reports");
         });
 
-        modelBuilder.Entity("NET1814_MilkShop.Repositories.Data.Entities.ReportType", b =>
+        modelBuilder.Entity<ReportType>(b =>
         {
             b.Property<int>("Id")
                 .ValueGeneratedOnAdd()
                 .HasColumnType("int");
 
-            b.Property<DateTime>("CreatedAt")
-                .HasColumnType("timestamp with time zone") // Chỉ định kiểu dữ liệu cho PostgreSQL
-                .HasColumnName("created_at");
+            if (Database.IsNpgsql())
+            {
+                b.Property<DateTime>("CreatedAt")
+                    .HasColumnType("timestamp with time zone") // Chỉ định kiểu dữ liệu cho PostgreSQL
+                    .HasColumnName("created_at");
 
-            b.Property<DateTime?>("DeletedAt")
-                .HasColumnType("timestamp with time zone") // Chỉ định kiểu dữ liệu cho PostgreSQL
-                .HasColumnName("deleted_at");
+                b.Property<DateTime?>("DeletedAt")
+                    .HasColumnType("timestamp with time zone") // Chỉ định kiểu dữ liệu cho PostgreSQL
+                    .HasColumnName("deleted_at");
 
-            b.Property<string>("Description")
-                .HasColumnName("description")
-                .HasColumnType("nvarchar(2000)");
+                b.Property<string>("Description")
+                    .HasColumnName("description")
+                    .HasColumnType("nvarchar(2000)");
 
-            b.Property<DateTime?>("ModifiedAt")
-                .HasColumnType("timestamp with time zone") // Chỉ định kiểu dữ liệu cho PostgreSQL
-                .HasColumnName("modified_at");
+                b.Property<DateTime?>("ModifiedAt")
+                    .HasColumnType("timestamp with time zone") // Chỉ định kiểu dữ liệu cho PostgreSQL
+                    .HasColumnName("modified_at");
+            }
+            else
+            {
+                b.Property<string>("Description")
+                    .HasColumnType("nvarchar(2000)");
+            }
 
             b.Property<string>("Name")
                 .IsRequired()
                 .HasColumnType("nvarchar(255)");
 
             b.HasKey("Id");
-
-            b.ToTable("report_types");
         });
 
-        modelBuilder.Entity("NET1814_MilkShop.Repositories.Data.Entities.Role", b =>
+        modelBuilder.Entity<Role>(b =>
         {
             b.Property<int>("Id")
                 .ValueGeneratedOnAdd()
@@ -1062,44 +1422,6 @@ public class AppDbContext : DbContext
             b.Property<string>("Description")
                 .HasColumnName("description")
                 .HasColumnType("nvarchar(2000)");
-
-            b.Property<DateTime?>("ModifiedAt")
-                .HasColumnType("timestamp with time zone") // Chỉ định kiểu dữ liệu cho PostgreSQL
-                .HasColumnName("modified_at");
-
-            b.Property<string>("Name")
-                .IsRequired()
-                .HasColumnType("nvarchar(255)");
-
-            b.HasKey("Id");
-
-            b.ToTable("roles", null as string);
-        });
-
-        modelBuilder.Entity("NET1814_MilkShop.Repositories.Data.Entities.Unit", b =>
-        {
-            b.Property<int>("Id")
-                .ValueGeneratedOnAdd()
-                .HasColumnType("int");
-
-            b.Property<DateTime>("CreatedAt")
-                .HasColumnType("timestamp with time zone") // Chỉ định kiểu dữ liệu cho PostgreSQL
-                .HasColumnName("created_at");
-
-            b.Property<DateTime?>("DeletedAt")
-                .HasColumnType("timestamp with time zone") // Chỉ định kiểu dữ liệu cho PostgreSQL
-                .HasColumnName("deleted_at");
-
-            b.Property<string>("Description")
-                .HasColumnName("description")
-                .HasColumnType("nvarchar(2000)");
-
-            b.Property<int>("Gram")
-                .HasColumnType("int")
-                .HasColumnName("gram");
-
-            b.Property<bool>("IsActive")
-                .HasColumnName("is_active");
 
             b.Property<DateTime?>("ModifiedAt")
                 .HasColumnType("timestamp with time zone") // Chỉ định kiểu dữ liệu cho PostgreSQL
@@ -1108,13 +1430,78 @@ public class AppDbContext : DbContext
             b.Property<string>("Name")
                 .IsRequired()
                 .HasColumnType("nvarchar(255)")
-                .UseCollation("Latin1_General_CI_AS");
+                .HasColumnName("name");
+
+            b.HasKey("Id");
+        });
+
+        modelBuilder.Entity<Unit>(b =>
+        {
+            b.Property<int>("Id")
+                .ValueGeneratedOnAdd()
+                .HasColumnType("int");
+
+            if (Database.IsNpgsql())
+            {
+                b.Property<DateTime>("CreatedAt")
+                    .HasColumnType("timestamp with time zone") // Chỉ định kiểu dữ liệu cho PostgreSQL
+                    .HasColumnName("created_at");
+
+                b.Property<DateTime?>("DeletedAt")
+                    .HasColumnType("timestamp with time zone") // Chỉ định kiểu dữ liệu cho PostgreSQL
+                    .HasColumnName("deleted_at");
+
+                b.Property<string>("Description")
+                    .HasColumnName("Description")
+                    .HasColumnType("nvarchar(2000)");
+
+                b.Property<int>("Gram")
+                    .HasColumnType("int")
+                    .HasColumnName("gram");
+
+                b.Property<bool>("IsActive")
+                    .HasColumnName("is_active");
+
+                b.Property<DateTime?>("ModifiedAt")
+                    .HasColumnType("timestamp with time zone") // Chỉ định kiểu dữ liệu cho PostgreSQL
+                    .HasColumnName("modified_at");
+
+                b.Property<string>("Name")
+                    .IsRequired()
+                    .HasColumnType("nvarchar(255)")
+                    .UseCollation("Latin1_General_CI_AS");
+            }
+            else
+            {
+                b.Property<DateTime>("CreatedAt")
+                    .HasColumnName("created_at");
+
+                b.Property<DateTime?>("DeletedAt")
+                    .HasColumnName("deleted_at");
+
+                b.Property<string>("Description")
+                    .HasColumnType("nvarchar(2000)")
+                    .HasColumnName("description");
+
+                b.Property<int>("Gram")
+                    .HasColumnName("gram");
+
+                b.Property<bool>("IsActive")
+                    .HasColumnName("is_active");
+
+                b.Property<DateTime?>("ModifiedAt")
+                    .HasColumnName("modified_at");
+
+                b.Property<string>("Name")
+                    .IsRequired()
+                    .HasColumnType("nvarchar(255)")
+                    .HasColumnName("name")
+                    .UseCollation("Latin1_General_CI_AS");
+            }
 
             b.HasKey("Id");
 
             b.HasIndex("Name");
-
-            b.ToTable("units", null as string);
         });
 
         modelBuilder.Entity("NET1814_MilkShop.Repositories.Data.Entities.User", b =>
@@ -1123,58 +1510,108 @@ public class AppDbContext : DbContext
                 .ValueGeneratedOnAdd()
                 .HasColumnName("id");
 
-            b.Property<DateTime>("CreatedAt")
-                .HasColumnType("timestamp with time zone") // Chỉ định kiểu dữ liệu cho PostgreSQL
-                .HasColumnName("created_at");
+            if (Database.IsNpgsql())
+            {
+                b.Property<DateTime>("CreatedAt")
+                    .HasColumnType("timestamp with time zone") // Chỉ định kiểu dữ liệu cho PostgreSQL
+                    .HasColumnName("created_at");
 
-            b.Property<DateTime?>("DeletedAt")
-                .HasColumnType("timestamp with time zone") // Chỉ định kiểu dữ liệu cho PostgreSQL
-                .HasColumnName("deleted_at");
+                b.Property<DateTime?>("DeletedAt")
+                    .HasColumnType("timestamp with time zone") // Chỉ định kiểu dữ liệu cho PostgreSQL
+                    .HasColumnName("deleted_at");
 
-            b.Property<string>("FirstName")
-                .HasColumnType("nvarchar(50)")
-                .HasColumnName("first_name");
+                b.Property<string>("FirstName")
+                    .HasColumnType("nvarchar(50)")
+                    .HasColumnName("first_name");
 
-            b.Property<bool>("IsActive")
-                .HasColumnName("is_active");
+                b.Property<bool>("IsActive")
+                    .HasColumnName("is_active");
 
-            b.Property<bool>("IsBanned")
-                .HasColumnName("is_banned");
+                b.Property<bool>("IsBanned")
+                    .HasColumnName("is_banned");
 
-            b.Property<string>("LastName")
-                .HasColumnType("nvarchar(50)")
-                .HasColumnName("last_name");
+                b.Property<string>("LastName")
+                    .HasColumnType("nvarchar(50)")
+                    .HasColumnName("last_name");
 
-            b.Property<DateTime?>("ModifiedAt")
-                .HasColumnType("timestamp with time zone") // Chỉ định kiểu dữ liệu cho PostgreSQL
-                .HasColumnName("modified_at");
+                b.Property<DateTime?>("ModifiedAt")
+                    .HasColumnType("timestamp with time zone") // Chỉ định kiểu dữ liệu cho PostgreSQL
+                    .HasColumnName("modified_at");
 
-            b.Property<string>("Password")
-                .IsRequired()
-                .HasColumnType("nvarchar(255)");
+                b.Property<string>("ResetPasswordCode")
+                    .HasColumnType("nvarchar(6)")
+                    .HasColumnName("reset_password_code");
 
-            b.Property<string>("ResetPasswordCode")
-                .HasColumnType("nvarchar(6)")
-                .HasColumnName("reset_password_code");
+                b.Property<int>("RoleId")
+                    .HasColumnType("int")
+                    .HasColumnName("role_id");
 
-            b.Property<int>("RoleId")
-                .HasColumnType("int")
-                .HasColumnName("role_id");
+                b.Property<string>("VerificationCode")
+                    .HasColumnType("nvarchar(6)")
+                    .HasColumnName("verification_code");
 
-            b.Property<string>("Username")
-                .IsRequired()
-                .HasColumnType("nvarchar(50)")
-                .UseCollation("Latin1_General_CS_AS");
+                b.Property<string>("Password")
+                    .IsRequired()
+                    .HasColumnType("nvarchar(255)")
+                    .HasColumnName("password");
 
-            b.Property<string>("VerificationCode")
-                .HasColumnType("nvarchar(6)")
-                .HasColumnName("verification_code");
+                b.Property<string>("Username")
+                    .IsRequired()
+                    .HasColumnType("nvarchar(50)")
+                    .HasColumnName("username")
+                    .UseCollation("Latin1_General_CS_AS");
+            }
+            else
+            {
+                b.Property<DateTime>("CreatedAt")
+                    .HasColumnName("created_at");
+
+                b.Property<DateTime?>("DeletedAt")
+                    .HasColumnName("deleted_at");
+
+                b.Property<string>("FirstName")
+                    .HasColumnType("nvarchar(50)")
+                    .HasColumnName("first_name");
+
+                b.Property<bool>("IsActive")
+                    .HasColumnName("is_active");
+
+                b.Property<bool>("IsBanned")
+                    .HasColumnName("is_banned");
+
+                b.Property<string>("LastName")
+                    .HasColumnType("nvarchar(50)")
+                    .HasColumnName("last_name");
+
+                b.Property<DateTime?>("ModifiedAt")
+                    .HasColumnName("modified_at");
+
+                b.Property<string>("ResetPasswordCode")
+                    .HasColumnType("nvarchar(6)")
+                    .HasColumnName("reset_password_code");
+
+                b.Property<int>("RoleId")
+                    .HasColumnName("role_id");
+
+                b.Property<string>("VerificationCode")
+                    .HasColumnType("nvarchar(6)")
+                    .HasColumnName("verification_code");
+
+                b.Property<string>("Password")
+                    .IsRequired()
+                    .HasColumnType("nvarchar(255)")
+                    .HasColumnName("password");
+
+                b.Property<string>("Username")
+                    .IsRequired()
+                    .HasColumnType("nvarchar(50)")
+                    .HasColumnName("username")
+                    .UseCollation("Latin1_General_CS_AS");
+            }
 
             b.HasKey("Id");
 
             b.HasIndex("RoleId");
-
-            b.ToTable("users", null as string);
         });
 
         modelBuilder.Entity("NET1814_MilkShop.Repositories.Data.Entities.Voucher", b =>
@@ -1187,51 +1624,80 @@ public class AppDbContext : DbContext
                 .IsRequired()
                 .HasColumnType("nvarchar(10)");
 
-            b.Property<DateTime>("CreatedAt")
-                .HasColumnType("timestamp with time zone") // Chỉ định kiểu dữ liệu cho PostgreSQL
-                .HasColumnName("created_at");
+            if (Database.IsNpgsql())
+            {
+                b.Property<DateTime>("CreatedAt")
+                    .HasColumnType("timestamp with time zone") // Chỉ định kiểu dữ liệu cho PostgreSQL
+                    .HasColumnName("created_at");
 
-            b.Property<DateTime?>("DeletedAt")
-                .HasColumnType("timestamp with time zone") // Chỉ định kiểu dữ liệu cho PostgreSQL
-                .HasColumnName("deleted_at");
+                b.Property<DateTime?>("DeletedAt")
+                    .HasColumnType("timestamp with time zone") // Chỉ định kiểu dữ liệu cho PostgreSQL
+                    .HasColumnName("deleted_at");
+
+                b.Property<DateTime>("EndDate")
+                    .HasColumnType("timestamp with time zone") // Chỉ định kiểu dữ liệu cho PostgreSQL
+                    .HasColumnName("end_date");
+
+                b.Property<bool>("IsActive")
+                    .HasColumnName("is_active");
+
+                b.Property<int>("MaxDiscount")
+                    .HasColumnType("int")
+                    .HasColumnName("max_discount");
+
+                b.Property<int>("MinPriceCondition")
+                    .HasColumnType("int")
+                    .HasColumnName("min_price_condition");
+
+                b.Property<DateTime?>("ModifiedAt")
+                    .HasColumnType("timestamp with time zone") // Chỉ định kiểu dữ liệu cho PostgreSQL
+                    .HasColumnName("modified_at");
+
+                b.Property<DateTime>("StartDate")
+                    .HasColumnType("timestamp with time zone") // Chỉ định kiểu dữ liệu cho PostgreSQL
+                    .HasColumnName("start_date");
+            }
+            else
+            {
+                b.Property<DateTime>("CreatedAt")
+                    .HasColumnName("created_at");
+
+                b.Property<DateTime?>("DeletedAt")
+                    .HasColumnName("deleted_at");
+
+                b.Property<DateTime>("EndDate")
+                    .HasColumnName("end_date");
+
+                b.Property<bool>("IsActive")
+                    .HasColumnName("is_active");
+
+                b.Property<int>("MaxDiscount")
+                    .HasColumnName("max_discount");
+
+                b.Property<int>("MinPriceCondition")
+                    .HasColumnName("min_price_condition");
+
+                b.Property<DateTime?>("ModifiedAt")
+                    .HasColumnName("modified_at");
+
+                b.Property<DateTime>("StartDate")
+                    .HasColumnName("start_date");
+            }
 
             b.Property<string>("Description")
                 .HasColumnName("description")
                 .IsRequired()
                 .HasColumnType("nvarchar(2000)");
 
-            b.Property<DateTime>("EndDate")
-                .HasColumnType("timestamp with time zone") // Chỉ định kiểu dữ liệu cho PostgreSQL
-                .HasColumnName("end_date");
-
-            b.Property<bool>("IsActive")
-                .HasColumnName("is_active");
-
-            b.Property<int>("MaxDiscount")
-                .HasColumnType("int")
-                .HasColumnName("max_discount");
-
-            b.Property<int>("MinPriceCondition")
-                .HasColumnType("int")
-                .HasColumnName("min_price_condition");
-
-            b.Property<DateTime?>("ModifiedAt")
-                .HasColumnType("timestamp with time zone") // Chỉ định kiểu dữ liệu cho PostgreSQL
-                .HasColumnName("modified_at");
-
             b.Property<int>("Percent")
-                .HasColumnType("int");
+                .HasColumnType("int")
+                .HasColumnName("percent");
 
             b.Property<int>("Quantity")
-                .HasColumnType("int");
-
-            b.Property<DateTime>("StartDate")
-                .HasColumnType("timestamp with time zone") // Chỉ định kiểu dữ liệu cho PostgreSQL
-                .HasColumnName("start_date");
+                .HasColumnType("int")
+                .HasColumnName("quantity");
 
             b.HasKey("Id");
-
-            b.ToTable("vouchers");
         });
 
         modelBuilder.Entity("NET1814_MilkShop.Repositories.Data.Entities.Cart", b =>
@@ -1452,7 +1918,7 @@ public class AppDbContext : DbContext
             b.Navigation("Product");
         });
 
-        modelBuilder.Entity("NET1814_MilkShop.Repositories.Data.Entities.Report", b =>
+        modelBuilder.Entity<Report>(b =>
         {
             b.HasOne("NET1814_MilkShop.Repositories.Data.Entities.Customer", "Customer")
                 .WithMany()
@@ -1545,7 +2011,7 @@ public class AppDbContext : DbContext
 
         modelBuilder.Entity("NET1814_MilkShop.Repositories.Data.Entities.Unit", b => { b.Navigation("Products"); });
 
-        modelBuilder.Entity("NET1814_MilkShop.Repositories.Data.Entities.User", b =>
+        modelBuilder.Entity<User>(b =>
         {
             b.Navigation("Customer");
 
@@ -1654,10 +2120,14 @@ public class AppDbContext : DbContext
                 .OnDelete(DeleteBehavior.Restrict)
                 .IsRequired();
 
-            b.Navigation("Conversation");
             b.Navigation("Sender");
-
-            b.ToTable("messages");
         });
+    }
+
+    private static string ToSnakeCase(string input)
+    {
+        if (string.IsNullOrEmpty(input)) { return input; }
+        var startUnderscores = System.Text.RegularExpressions.Regex.Match(input, @"^_+");
+        return startUnderscores + System.Text.RegularExpressions.Regex.Replace(input, @"([a-z0-9])([A-Z])", "$1_$2").ToLower();
     }
 }

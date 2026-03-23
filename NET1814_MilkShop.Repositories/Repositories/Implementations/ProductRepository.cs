@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using NET1814_MilkShop.Repositories.Data;
 using NET1814_MilkShop.Repositories.Data.Entities;
 using NET1814_MilkShop.Repositories.Repositories.Interfaces;
@@ -19,7 +19,7 @@ public sealed class ProductRepository : Repository<Product>, IProductRepository
         query = query.Include(p => p.Brand)
             .Include(p => p.Category)
             .Include(p => p.Unit)
-            .Include(p => p.ProductStatus).AsSplitQuery();
+            .Include(p => p.ProductStatus);
         return query;
     }
 

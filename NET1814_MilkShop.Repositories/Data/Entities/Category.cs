@@ -1,22 +1,20 @@
-﻿using System.ComponentModel;
+using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using NET1814_MilkShop.Repositories.Data.Interfaces;
 
 namespace NET1814_MilkShop.Repositories.Data.Entities;
 
-[Table("categories")]
 public class Category : IAuditableEntity
 {
     [Key] public int Id { get; set; }
 
-    [Column("name", TypeName = "nvarchar(255)")]
-    public string Name { get; set; } = null!;
+    [Column("name")] public string Name { get; set; } = null!;
 
-    [Column("description", TypeName = "nvarchar(2000)")]
-    public string? Description { get; set; }
+    [Column("description")] public string? Description { get; set; }
 
-    [DefaultValue(false)] public bool IsActive { get; set; }
+    [Column("is_active")]
+    public bool IsActive { get; set; }
 
     [ForeignKey("Parent")]
     [Column("parent_id")]

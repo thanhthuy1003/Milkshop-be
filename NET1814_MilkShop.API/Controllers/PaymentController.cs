@@ -38,7 +38,7 @@ public class PaymentController : ControllerBase
     /// <summary>
     /// Get payment link information by OrderId in database
     /// Check exist order by orderId, check exist transaction code
-    /// check data response (code == null & code != "00") -> return Error (Có lỗi trong quá trình lấy dữ liệu thông tin thanh toán)
+    /// check data response (code == null &amp;&amp; code != "00") -> return Error (Có lỗi trong quá trình lấy dữ liệu thông tin thanh toán)
     /// check data if null or empty -> return Error (Không tồn tại thông tin thanh toán)
     /// </summary>
     /// <param name="orderId"></param>

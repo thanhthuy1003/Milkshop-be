@@ -4,7 +4,6 @@ using NET1814_MilkShop.Repositories.Data.Interfaces;
 
 namespace NET1814_MilkShop.Repositories.Data.Entities;
 
-[Table("conversations")]
 public class Conversation : IAuditableEntity
 {
     [Key]

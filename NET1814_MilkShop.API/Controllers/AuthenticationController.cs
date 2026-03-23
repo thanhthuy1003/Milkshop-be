@@ -1,5 +1,7 @@
-﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using NET1814_MilkShop.API.CoreHelpers.Extensions;
+using Microsoft.EntityFrameworkCore;
+using NET1814_MilkShop.Repositories.Data;
 using NET1814_MilkShop.Repositories.Models.UserModels;
 using NET1814_MilkShop.Services.Services.Interfaces;
 using ILogger = Serilog.ILogger;
@@ -93,5 +95,13 @@ public class AuthenticationController : Controller
         _logger.Information("Google Login");
         var response = await _authenticationService.GoogleLoginAsync(token);
         return ResponseExtension.Result(response);
+    }
+
+    [HttpGet("db-status")]
+    public async Task<IActionResult> GetDbStatus()
+    {
+        var context = HttpContext.RequestServices.GetRequiredService<AppDbContext>();
+        var users = await context.Users.Select(u => new { u.Username, u.RoleId, u.IsActive }).ToListAsync();
+        return Ok(users);
     }
 }

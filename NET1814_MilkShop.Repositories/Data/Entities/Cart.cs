@@ -4,11 +4,10 @@ using NET1814_MilkShop.Repositories.Data.Interfaces;
 
 namespace NET1814_MilkShop.Repositories.Data.Entities;
 
-[Table("Carts")]
 public class Cart : IAuditableEntity
 {
     [Key] public int Id { get; set; }
-    [Required] public Guid CustomerId { get; set; }
+    [Column("customer_id")] public Guid CustomerId { get; set; }
 
 
     [Column("created_at", TypeName = "datetime2")]

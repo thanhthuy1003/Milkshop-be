@@ -1,10 +1,9 @@
-﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using NET1814_MilkShop.Repositories.Data.Interfaces;
 
 namespace NET1814_MilkShop.Repositories.Data.Entities;
 
-[Table("product_reviews")]
 public class ProductReview : IAuditableEntity
 {
     [Key] public int Id { get; set; }
@@ -13,11 +12,12 @@ public class ProductReview : IAuditableEntity
     [Required] [Column("order_id")] public Guid OrderId { get; set; }
 
     [MaxLength(255)]
-    [Column("review", TypeName = "nvarchar(255)")]
+    [Column("Review", TypeName = "nvarchar(255)")]
     public string Review { get; set; } = "";
 
-    [Column("rating")] public int Rating { get; set; }
-    [Column("is_active")] public bool IsActive { get; set; } = true;
+    [Column("Rating")] public int Rating { get; set; }
+    [Column("is_active")]
+    public bool IsActive { get; set; } = true;
 
     [Column("created_at", TypeName = "datetime2")]
     public DateTime CreatedAt { get; set; }

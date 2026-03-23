@@ -1,19 +1,18 @@
-﻿using System.ComponentModel;
+using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using NET1814_MilkShop.Repositories.Data.Interfaces;
 
 namespace NET1814_MilkShop.Repositories.Data.Entities;
 
-[Table("users")]
 public class User : IAuditableEntity
 {
-    [Key][Column("id")] public Guid Id { get; set; }
+    [Key][Column("Id")] public Guid Id { get; set; }
 
-    [Column("username", TypeName = "nvarchar(50)")]
+    [Column("Username", TypeName = "nvarchar(50)")]
     public string Username { get; set; } = null!;
 
-    [Column("password", TypeName = "nvarchar(255)")]
+    [Column("Password", TypeName = "nvarchar(255)")]
     public string Password { get; set; } = null!;
 
     [Column("first_name", TypeName = "nvarchar(50)")]
@@ -28,9 +27,12 @@ public class User : IAuditableEntity
     [Column("reset_password_code", TypeName = "nvarchar(6)")]
     public string? ResetPasswordCode { get; set; }
 
+    [Column("role_id")]
     public int RoleId { get; set; }
 
-    [DefaultValue(false)] public bool IsActive { get; set; }
+    [DefaultValue(false)] 
+    [Column("is_active")]
+    public bool IsActive { get; set; }
 
     [Column("is_banned")]
     [DefaultValue(false)]

@@ -3,19 +3,24 @@ using NET1814_MilkShop.Repositories.Data.Interfaces;
 
 namespace NET1814_MilkShop.Repositories.Data.Entities;
 
-[Table("order_details")]
 public class OrderDetail : IAuditableEntity
 {
+    [Column("order_id")]
     public Guid OrderId { get; set; }
 
+    [Column("product_id")]
     public Guid ProductId { get; set; }
+
     [Column("quantity")]
     public int Quantity { get; set; }
 
+    [Column("unit_price")]
     public int UnitPrice { get; set; }
 
+    [Column("product_name")]
     public string ProductName { get; set; } = null!;
 
+    [Column("item_price")]
     public int ItemPrice { get; set; }
 
     [Column("thumbnail", TypeName = "nvarchar(255)")]

@@ -4,16 +4,15 @@ using NET1814_MilkShop.Repositories.Data.Interfaces;
 
 namespace NET1814_MilkShop.Repositories.Data.Entities;
 
-[Table("vouchers")]
 public class Voucher : IAuditableEntity
 {
-    [Key] public Guid Id { get; set; }
+    [Key][Column("Id")] public Guid Id { get; set; }
 
     // Mã voucher tối đa 10 ký tự
-    [Column("code", TypeName = "nvarchar(10)")]
+    [Column("Code", TypeName = "nvarchar(10)")]
     public string Code { get; set; } = null!;
 
-    [Column("description", TypeName = "nvarchar(2000)")]
+    [Column("Description", TypeName = "nvarchar(2000)")]
     public string Description { get; set; } = null!;
 
     [Column("start_date", TypeName = "datetime2")]
@@ -23,12 +22,13 @@ public class Voucher : IAuditableEntity
     public DateTime EndDate { get; set; }
 
     // Số lượng voucher còn lại
-    [Column("quantity")] public int Quantity { get; set; }
+    [Column("Quantity")] public int Quantity { get; set; }
 
     // Phần trăm giảm 
-    [Column("percent")] public int Percent { get; set; }
+    [Column("Percent")] public int Percent { get; set; }
 
-    [Column("is_active")] public bool IsActive { get; set; }
+    [Column("is_active")]
+    public bool IsActive { get; set; }
 
     // Giá trị đơn hàng tối thiểu để sử dụng voucher
     [Column("min_price_condition")] public int MinPriceCondition { get; set; }

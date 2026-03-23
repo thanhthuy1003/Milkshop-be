@@ -3,7 +3,7 @@ namespace NET1814_MilkShop.Repositories.Models.CheckoutModels;
 public class CheckoutResponseModel
 {
     public Guid? OrderId { get; set; }
-    public int? OrderCode { get; set; } = null;
+    public long? OrderCode { get; set; } = null;
     public Guid? CustomerId { get; set; }
     public string? FullName { get; set; }
 

@@ -447,13 +447,13 @@ public class CheckoutService : ICheckoutService
         return ResponseModel.Error(ResponseConstants.Create("đơn hàng", false));
     }
 
-    private async Task<int> GenerateOrderCode()
+    private async Task<long> GenerateOrderCode()
     {
         Random random = new Random();
-        int orderCode;
+        long orderCode;
         do
         {
-            orderCode = random.Next(0, 10000000);
+            orderCode = random.NextInt64(0, 10000000);
         } while (await _orderRepository.IsExistOrderCode(orderCode));
 
         return orderCode;

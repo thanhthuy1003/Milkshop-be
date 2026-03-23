@@ -1,10 +1,10 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 
 namespace NET1814_MilkShop.Services.CoreHelpers;
 
 public class PagedList<T>
 {
-    private PagedList(List<T> items, int page, int pageSize, int totalCount)
+    public PagedList(List<T> items, int page, int pageSize, int totalCount)
     {
         Items = items;
         Page = page;

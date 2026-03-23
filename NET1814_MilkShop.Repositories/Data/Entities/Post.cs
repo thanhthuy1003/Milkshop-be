@@ -1,10 +1,9 @@
-﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using NET1814_MilkShop.Repositories.Data.Interfaces;
 
 namespace NET1814_MilkShop.Repositories.Data.Entities;
 
-[Table("posts")]
 public class Post : IAuditableEntity
 {
     [Key] public Guid Id { get; set; }
@@ -28,7 +27,8 @@ public class Post : IAuditableEntity
     [Column("thumbnail", TypeName = "nvarchar(255)")]
     public string? Thumbnail { get; set; }
 
-    [Column("is_active")] public bool IsActive { get; set; }
+    [Column("is_active")]
+    public bool IsActive { get; set; }
 
     public virtual User? Author { get; set; }
 

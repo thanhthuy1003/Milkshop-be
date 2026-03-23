@@ -1,10 +1,11 @@
-﻿using System.Reflection;
+using System.Reflection;
 using System.Text;
 using FirebaseAdmin;
 using Google.Apis.Auth.OAuth2;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using NET1814_MilkShop.API.CoreHelpers.ActionFilters;
 using NET1814_MilkShop.API.Infrastructure;
 using NET1814_MilkShop.Repositories.Data;
@@ -23,10 +24,12 @@ namespace NET1814_MilkShop.API;
 public class Startup
 {
     private readonly IConfiguration _configuration;
+    private readonly IWebHostEnvironment _env;
 
     public Startup(WebApplicationBuilder builder, IWebHostEnvironment env)
     {
         _configuration = builder.Configuration;
+        _env = env;
     }
 
     public void ConfigureServices(IServiceCollection services)
@@ -103,8 +106,14 @@ public class Startup
             Console.WriteLine($"[WARNING] Firebase initialization failed: {ex.Message}. Continuing without Firebase.");
         }
         services.Configure<EmailSettingModel>(_configuration.GetSection("EmailSettings"));
-        //services.AddDbContext<AppDbContext>(options => options.UseSqlServer(connectionString));
-        services.AddDbContext<AppDbContext>(options => options.UseNpgsql(connectionString));
+        if (_env.IsDevelopment())
+        {
+            services.AddDbContext<AppDbContext>(options => options.UseSqlServer(connectionString));
+        }
+        else
+        {
+            services.AddDbContext<AppDbContext>(options => options.UseNpgsql(connectionString));
+        }
         services.AddHttpClient();
         services.AddExceptionHandler<ExceptionLoggingHandler>();
         services.AddExceptionHandler<GlobalExceptionHandler>();
@@ -130,10 +139,24 @@ public class Startup
                             ValidIssuer = _configuration["Jwt:Issuer"],
                             ValidateIssuerSigningKey = true,
                             IssuerSigningKey = new SymmetricSecurityKey(
-                                Encoding.UTF8.GetBytes(_configuration["Jwt:AccessTokenKey"])
+                                Encoding.UTF8.GetBytes(_configuration["Jwt:AccessTokenKey"] ?? string.Empty)
                             ),
                             ClockSkew = TimeSpan.FromMinutes(0)
                         };
+                    o.Events = new JwtBearerEvents
+                    {
+                        OnMessageReceived = context =>
+                        {
+                            var authHeader = context.Request.Headers["Authorization"].ToString();
+                            if (!string.IsNullOrEmpty(authHeader))
+                            {
+                                var token = authHeader.Replace("Bearer ", "", StringComparison.OrdinalIgnoreCase)
+                                                      .Replace("Access ", "", StringComparison.OrdinalIgnoreCase).Trim();
+                                context.Token = token;
+                            }
+                            return Task.CompletedTask;
+                        }
+                    };
                 }
             )
             .AddJwtBearer(
@@ -149,7 +172,7 @@ public class Startup
                             ValidIssuer = _configuration["Jwt:Issuer"],
                             ValidateIssuerSigningKey = true,
                             IssuerSigningKey = new SymmetricSecurityKey(
-                                Encoding.UTF8.GetBytes(_configuration["Jwt:RefreshTokenKey"])
+                                Encoding.UTF8.GetBytes(_configuration["Jwt:RefreshTokenKey"] ?? string.Empty)
                             ),
                             ClockSkew = TimeSpan.FromMinutes(0)
                         };

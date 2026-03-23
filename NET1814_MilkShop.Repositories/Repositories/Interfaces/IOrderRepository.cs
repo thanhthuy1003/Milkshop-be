@@ -1,4 +1,4 @@
-﻿using NET1814_MilkShop.Repositories.Data.Entities;
+using NET1814_MilkShop.Repositories.Data.Entities;
 
 namespace NET1814_MilkShop.Repositories.Repositories.Interfaces;
 
@@ -29,11 +29,11 @@ public interface IOrderRepository
     void Add(Order order);
     void Update(Order order);
     void AddRange(IEnumerable<OrderDetail> list);
-    Task<Order?> GetByCodeAsync(int orderCode);
+    Task<Order?> GetByCodeAsync(long orderCode);
     Task<Order?> GetByIdNoIncludeAsync(Guid id);
     Task<List<Order>?> GetAllCodeAsync();
     Task<Order?> GetByOrderIdAsync(Guid orderId, bool include);
-    Task<bool> IsExistOrderCode(int id);
+    Task<bool> IsExistOrderCode(long id);
     void Add(OrderDetail orderDetail);
     Task<bool> IsExistPreorderProductAsync(Guid orderId);
     Task<Order?> GetByIdIncludeCustomerAsync(Guid id);

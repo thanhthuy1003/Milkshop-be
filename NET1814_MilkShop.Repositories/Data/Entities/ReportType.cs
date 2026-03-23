@@ -4,7 +4,6 @@ using NET1814_MilkShop.Repositories.Data.Interfaces;
 
 namespace NET1814_MilkShop.Repositories.Data.Entities;
 
-[Table("report_types")]
 public class ReportType : IAuditableEntity
 {
     [Key] public int Id { get; set; }

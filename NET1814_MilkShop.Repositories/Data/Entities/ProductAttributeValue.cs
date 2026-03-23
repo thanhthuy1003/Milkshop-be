@@ -1,16 +1,17 @@
-﻿using System.ComponentModel.DataAnnotations.Schema;
+using System.ComponentModel.DataAnnotations.Schema;
 using NET1814_MilkShop.Repositories.Data.Interfaces;
 
 namespace NET1814_MilkShop.Repositories.Data.Entities;
 
-[Table("product_attribute_values")]
 public class ProductAttributeValue : IAuditableEntity
 {
+    [Column("product_id")]
     public Guid ProductId { get; set; }
 
+    [Column("attribute_id")]
     public int AttributeId { get; set; }
 
-    [Column("value", TypeName = "nvarchar(2000)")]
+    [Column("Value", TypeName = "nvarchar(2000)")]
     public string? Value { get; set; }
 
     [Column("created_at", TypeName = "datetime2")]

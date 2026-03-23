@@ -1,6 +1,7 @@
 using System.Linq.Expressions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using Serilog;
 using NET1814_MilkShop.Repositories.CoreHelpers.Constants;
 using NET1814_MilkShop.Repositories.CoreHelpers.Enum;
 using NET1814_MilkShop.Repositories.Data.Entities;
@@ -24,6 +25,8 @@ public class ProductService : IProductService
     private readonly IProductRepository _productRepository;
     private readonly IUnitOfWork _unitOfWork;
     private readonly IUnitRepository _unitRepository;
+    private readonly Serilog.ILogger _logger;
+    private readonly IProductReviewRepository _productReviewRepository;
 
     public ProductService(
         IProductRepository productRepository,
@@ -32,7 +35,9 @@ public class ProductService : IProductService
         IUnitRepository unitRepository,
         IUnitOfWork unitOfWork,
         IOrderDetailRepository orderDetailRepository,
-        IPreorderProductRepository preorderProductRepository)
+        IPreorderProductRepository preorderProductRepository,
+        IProductReviewRepository productReviewRepository,
+        Serilog.ILogger logger)
     {
         _productRepository = productRepository;
         _brandRepository = brandRepository;
@@ -40,11 +45,14 @@ public class ProductService : IProductService
         _unitRepository = unitRepository;
         _orderDetailRepository = orderDetailRepository;
         _preorderProductRepository = preorderProductRepository;
+        _productReviewRepository = productReviewRepository;
         _unitOfWork = unitOfWork;
+        _logger = logger;
     }
 
     public async Task<ResponseModel> GetProductsAsync(ProductQueryModel queryModel)
     {
+        _logger.Information("--- [ANTIGRAVITY DEBUG] GetProductsAsync Start ---");
         if (queryModel.MinPrice > queryModel.MaxPrice && queryModel.MaxPrice != 0)
         {
             return ResponseModel.BadRequest(" Giá nhỏ nhất phải nhỏ hơn giá lớn nhất");
@@ -100,15 +108,16 @@ public class ProductService : IProductService
         #endregion
 
         //projection
-        var projection = query.Select(p => new
+        var projection = query.Select(p => new ProductProjection
         {
             Product = p,
             AverageRating = p.ProductReviews.Any(pr => pr.IsActive)
                 ? p.ProductReviews.Where(pr => pr.IsActive).Average(pr => (double)pr.Rating)
-                : 0,
-            RatingCount = p.ProductReviews.Count(pr => pr.IsActive),
+                : 0.0,
+            // PostgreSQL returns bigint for COUNT, we materialize as long and then cast in-memory
+            RatingCount = (long)p.ProductReviews.Count(pr => pr.IsActive),
             OrderCount = p.OrderDetails.Where(od => od.Order.StatusId == (int)OrderStatusId.Delivered)
-                .Sum(od => od.Quantity)
+                .Sum(od => (long?)od.Quantity) ?? 0L
         });
 
         #region Sort
@@ -141,8 +150,8 @@ public class ProductService : IProductService
                 break;
             case "rating":
                 sortedQuery = sortOrder.ToLower() == "asc"
-                    ? projection.OrderBy(p => p.AverageRating)
-                    : projection.OrderByDescending(p => p.AverageRating);
+                    ? projection.OrderBy(p => p.AverageRating).ThenBy(p => p.RatingCount)
+                    : projection.OrderByDescending(p => p.AverageRating).ThenByDescending(p => p.RatingCount);
                 break;
             case "ordercount":
                 sortedQuery = sortOrder.ToLower() == "asc"
@@ -156,16 +165,18 @@ public class ProductService : IProductService
 
         #endregion
 
-        var productModelQuery =
-            sortedQuery.Select(p => ToProductModel(p.Product, p.AverageRating, p.RatingCount, p.OrderCount));
-
         #region Pagination
 
-        var products = await PagedList<ProductModel>.CreateAsync(
-            productModelQuery,
+        var pagedProjection = await PagedList<ProductProjection>.CreateAsync(
+            sortedQuery,
             queryModel.Page,
             queryModel.PageSize
         );
+        
+        // Final in-memory mapping to DTOs, safely converting long to int
+        var productModels = pagedProjection.Items.Select(p => ToProductModel(p.Product, p.AverageRating, (int)p.RatingCount, (int)p.OrderCount)).ToList();
+        var products = new PagedList<ProductModel>(productModels, pagedProjection.Page, pagedProjection.PageSize, pagedProjection.TotalCount);
+        
         return ResponseModel.Success(ResponseConstants.Get("sản phẩm", products.TotalCount > 0), products);
 
         #endregion
@@ -176,27 +187,71 @@ public class ProductService : IProductService
     /// <para>Return preorder product if status is preordered</para>
     /// </summary>
     /// <param name="id"></param>
-    /// <returns></returns>
     public async Task<ResponseModel> GetProductByIdAsync(Guid id)
     {
-        var product = await _productRepository.GetByIdAsync(id, true, true);
-        if (product == null) return ResponseModel.BadRequest(ResponseConstants.NotFound("Sản phẩm"));
-        var projection = new
+        _logger.Information($"[DEBUG] GetProductByIdAsync started for ID: {id}");
+        try
         {
-            Product = product,
-            AverageRating = product.ProductReviews.IsNullOrEmpty()
+            // Step 1: Base product without any includes
+            _logger.Information("[DEBUG] Fetching base product...");
+            var product = await _productRepository.GetByIdNoIncludeAsync(id);
+            if (product == null)
+            {
+                _logger.Information("[DEBUG] Product not found.");
+                return ResponseModel.NotFound("Không tìm thấy sản phẩm");
+            }
+            _logger.Information("[DEBUG] Base product fetched successfully.");
+
+            // Step 2: Fetch relations one by one to isolate the error
+            _logger.Information("[DEBUG] Fetching Brand, Category, Unit, Status...");
+            // Use the repository method that includes the core relations
+            var fullProduct = await _productRepository.GetByIdAsync(id, false, false);
+            _logger.Information("[DEBUG] Core relations fetched successfully.");
+
+            // Step 3: Fetch Reviews
+            _logger.Information("[DEBUG] Fetching ProductReviews...");
+            var reviewsQuery = _productReviewRepository.GetProductReviewQuery(false)
+                .Where(pr => pr.ProductId == id);
+            var reviews = await reviewsQuery.ToListAsync();
+            _logger.Information($"[DEBUG] {reviews.Count} reviews fetched.");
+
+            // Step 4: Fetch OrderDetails
+            _logger.Information("[DEBUG] Fetching OrderDetails...");
+            var orderDetailsQuery = _orderDetailRepository.GetOrderDetailQuery()
+                .Include(od => od.Order)
+                .Where(od => od.ProductId == id);
+            var orderDetails = await orderDetailsQuery.ToListAsync();
+            _logger.Information($"[DEBUG] {orderDetails.Count} order details fetched.");
+
+            // Map to model using properties we just fetched
+            _logger.Information("[DEBUG] Calculating averages and counts...");
+            var averageRating = !reviews.Any(pr => pr.IsActive)
                 ? 0
-                : product.ProductReviews.Where(pr => pr.IsActive).Average(pr => (double)pr.Rating),
-            RatingCount = product.ProductReviews.Count(pr => pr.IsActive),
-            OrderCount = product.OrderDetails.Where(od => od.Order.StatusId == (int)OrderStatusId.Delivered)
-                .Sum(od => od.Quantity)
-        };
-        var preorderProduct = await _preorderProductRepository.GetByIdAsync(id);
-        product.PreorderProduct = preorderProduct;
-        return ResponseModel.Success(
-            ResponseConstants.Get("sản phẩm", true),
-            ToProductModel(projection.Product, projection.AverageRating, projection.RatingCount, projection.OrderCount)
-        );
+                : reviews.Where(pr => pr.IsActive).Average(pr => (double)pr.Rating);
+            var ratingCount = reviews.Count(pr => pr.IsActive);
+            var orderCount = orderDetails.Where(od => od.Order != null && od.Order.StatusId == (int)OrderStatusId.Delivered)
+                .Sum(od => od.Quantity); // Quantity is int, result is int in Linq to Objects
+
+            _logger.Information("[DEBUG] Mapping to ProductModel...");
+            var model = ToProductModel(product, averageRating, ratingCount, orderCount);
+            
+            // Manually attach relations if needed for ToProductModel
+            if (fullProduct != null)
+            {
+                model.Brand = fullProduct.Brand?.Name ?? "";
+                model.Category = fullProduct.Category?.Name ?? "";
+                model.Unit = fullProduct.Unit?.Name ?? "";
+                model.Status = fullProduct.ProductStatus?.Name ?? "";
+            }
+
+            _logger.Information("[DEBUG] GetProductByIdAsync completed successfully.");
+            return ResponseModel.Success("Lấy thông tin sản phẩm thành công", model);
+        }
+        catch (Exception ex)
+        {
+            _logger.Error(ex, $"[DEBUG] GetProductByIdAsync FAILED for ID: {id}");
+            throw; 
+        }
     }
 
     public async Task<ResponseModel> CreateProductAsync(CreateProductModel model)
@@ -393,8 +448,8 @@ public class ProductService : IProductService
         var bestSeller = await GetBestSellerProductAsync(orderDetails);
         var stats = new ProductStatsModel
         {
-            TotalSold = await orderDetails.SumAsync(o => o.Quantity),
-            TotalRevenue = await orderDetails.SumAsync(o => o.ItemPrice),
+            TotalSold = (int)(await orderDetails.SumAsync(o => (long?)o.Quantity) ?? 0L),
+            TotalRevenue = (int)(await orderDetails.SumAsync(o => (long?)o.ItemPrice) ?? 0L),
             StatsPerBrand = statsPerBrand,
             StatsPerCategory = statsPerCategory,
             BestSellers = bestSeller
@@ -411,8 +466,8 @@ public class ProductService : IProductService
             {
                 Id = g.Key.Id,
                 Name = g.Key.Name,
-                TotalSold = g.Sum(x => x.Quantity),
-                TotalRevenue = g.Sum(x => x.ItemPrice)
+                TotalSold = (int)(g.Sum(x => (long?)x.Quantity) ?? 0L),
+                TotalRevenue = (int)(g.Sum(x => (long?)x.ItemPrice) ?? 0L)
             };
         var bestSeller = await query.OrderByDescending(x => x.TotalSold).ThenByDescending(x => x.TotalRevenue)
             .Take(5)
@@ -480,7 +535,7 @@ public class ProductService : IProductService
 
         #endregion
 
-        var searchResultModel = query.Select(p => new ProductSearchResultModel
+        var searchResultProjection = query.Select(p => new ProductSearchResultProjection
         {
             Id = p.Id,
             Name = p.Name,
@@ -489,20 +544,37 @@ public class ProductService : IProductService
             SalePrice = p.SalePrice,
             IsPreOrder = p.PreorderProduct != null,
             AverageRating = p.ProductReviews.IsNullOrEmpty()
-                ? 0
+                ? 0.0
                 : p.ProductReviews.Where(pr => pr.IsActive).Average(pr => (double)pr.Rating),
-            RatingCount = p.ProductReviews.Count(pr => pr.IsActive),
+            RatingCount = (long)p.ProductReviews.Count(pr => pr.IsActive),
             Thumbnail = p.Thumbnail,
             Status = p.ProductStatus!.Name
         });
 
         #region Pagination
 
-        var searchResults = await PagedList<ProductSearchResultModel>.CreateAsync(
-            searchResultModel,
+        var pagedProjection = await PagedList<ProductSearchResultProjection>.CreateAsync(
+            searchResultProjection,
             queryModel.Page,
             queryModel.PageSize
         );
+
+        var searchResultModels = pagedProjection.Items.Select(p => new ProductSearchResultModel
+        {
+            Id = p.Id,
+            Name = p.Name,
+            Brand = p.Brand,
+            OriginalPrice = p.OriginalPrice,
+            SalePrice = p.SalePrice,
+            IsPreOrder = p.IsPreOrder,
+            AverageRating = Math.Round(p.AverageRating, 1),
+            RatingCount = (int)p.RatingCount,
+            Thumbnail = p.Thumbnail,
+            Status = p.Status
+        }).ToList();
+
+        var searchResults = new PagedList<ProductSearchResultModel>(searchResultModels, pagedProjection.Page,
+            pagedProjection.PageSize, pagedProjection.TotalCount);
 
         #endregion
 
@@ -521,15 +593,15 @@ public class ProductService : IProductService
             Description = product.Description,
             Quantity = product.Quantity,
             BrandId = product.BrandId,
-            Brand = product.Brand!.Name,
+            Brand = product.Brand?.Name ?? "",
             CategoryId = product.CategoryId,
-            Category = product.Category!.Name,
+            Category = product.Category?.Name ?? "",
             UnitId = product.UnitId,
-            Unit = product.Unit!.Name,
+            Unit = product.Unit?.Name ?? "",
             OriginalPrice = product.OriginalPrice,
             SalePrice = product.SalePrice,
             StatusId = product.StatusId,
-            Status = product.ProductStatus!.Name,
+            Status = product.ProductStatus?.Name ?? "",
             Thumbnail = product.Thumbnail,
             AverageRating = Math.Round(averageRating, 1),
             RatingCount = ratingCount,
@@ -666,8 +738,8 @@ public class ProductService : IProductService
             select new
             {
                 Id = g.Key,
-                TotalSold = g.Sum(x => x.Quantity),
-                TotalRevenue = g.Sum(x => x.ItemPrice)
+                TotalSold = (int)(g.Sum(x => (long?)x.Quantity) ?? 0L),
+                TotalRevenue = (int)(g.Sum(x => (long?)x.ItemPrice) ?? 0L)
             };
         var dataList = await query.ToListAsync();
         var categoryStatsList = categoriesList.Select(c => new CategoryBrandStats
@@ -692,10 +764,31 @@ public class ProductService : IProductService
             select new CategoryBrandStats
             {
                 Name = g.Key,
-                TotalSold = g.Sum(x => x.Quantity),
-                TotalRevenue = g.Sum(x => x.Quantity * x.ItemPrice)
+                TotalSold = (int)(g.Sum(x => (long?)x.Quantity) ?? 0L),
+                TotalRevenue = (int)(g.Sum(x => (long?)(x.Quantity * x.ItemPrice)) ?? 0L)
             };
         List<CategoryBrandStats> brandStatsList = await query.ToListAsync();
         return brandStatsList;
+    }
+    private class ProductProjection
+    {
+        public Product Product { get; set; } = null!;
+        public double AverageRating { get; set; }
+        public long RatingCount { get; set; }
+        public long OrderCount { get; set; }
+    }
+
+    private class ProductSearchResultProjection
+    {
+        public Guid Id { get; set; }
+        public string Name { get; set; } = null!;
+        public string Brand { get; set; } = null!;
+        public int OriginalPrice { get; set; }
+        public int SalePrice { get; set; }
+        public bool IsPreOrder { get; set; }
+        public double AverageRating { get; set; }
+        public long RatingCount { get; set; }
+        public string? Thumbnail { get; set; }
+        public string Status { get; set; } = null!;
     }
 }

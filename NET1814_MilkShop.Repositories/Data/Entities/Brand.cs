@@ -1,11 +1,10 @@
-﻿using System.ComponentModel;
+using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using NET1814_MilkShop.Repositories.Data.Interfaces;
 
 namespace NET1814_MilkShop.Repositories.Data.Entities;
 
-[Table("Brands")]
 public class Brand : IAuditableEntity
 {
     [Key] public int Id { get; set; }
@@ -19,7 +18,9 @@ public class Brand : IAuditableEntity
     [Column("logo", TypeName = "nvarchar(255)")] //url
     public string? Logo { get; set; }
 
-    [DefaultValue(false)] public bool IsActive { get; set; }
+    [DefaultValue(false)]
+    [Column("is_active")]
+    public bool IsActive { get; set; }
 
     [Column("created_at", TypeName = "datetime2")]
     public DateTime CreatedAt { get; set; }

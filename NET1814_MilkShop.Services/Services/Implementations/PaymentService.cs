@@ -33,7 +33,7 @@ public class PaymentService : IPaymentService
         _client.DefaultRequestHeaders.Add("x-api-key", _configuration["PayOS:ApiKey"]);
     }
 
-    public async Task<ResponseModel> CreatePaymentLink(int orderCode)
+    public async Task<ResponseModel> CreatePaymentLink(long orderCode)
     {
         try
         {

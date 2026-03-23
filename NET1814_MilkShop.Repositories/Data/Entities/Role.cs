@@ -4,7 +4,6 @@ using NET1814_MilkShop.Repositories.Data.Interfaces;
 
 namespace NET1814_MilkShop.Repositories.Data.Entities;
 
-[Table("roles")]
 public class Role : IAuditableEntity
 {
     [Key][Column("id")] public int Id { get; set; }

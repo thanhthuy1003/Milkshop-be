@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using NET1814_MilkShop.Repositories.CoreHelpers.Enum;
 using NET1814_MilkShop.Repositories.Data;
 using NET1814_MilkShop.Repositories.Data.Entities;
@@ -33,7 +33,7 @@ public class OrderRepository : Repository<Order>, IOrderRepository
         _context.OrderDetails.AddRange(list);
     }
 
-    public async Task<Order?> GetByCodeAsync(int orderCode)
+    public async Task<Order?> GetByCodeAsync(long orderCode)
     {
         return await _query
             .Include(o => o.Status)
@@ -71,7 +71,7 @@ public class OrderRepository : Repository<Order>, IOrderRepository
             ;
     }
 
-    public async Task<bool> IsExistOrderCode(int id)
+    public async Task<bool> IsExistOrderCode(long id)
     {
         return await _query.AnyAsync(x => x.TransactionCode == id);
     }

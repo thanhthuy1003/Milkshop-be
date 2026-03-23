@@ -4,7 +4,6 @@ using NET1814_MilkShop.Repositories.Data.Interfaces;
 
 namespace NET1814_MilkShop.Repositories.Data.Entities;
 
-[Table("order_logs")]
 public class OrderLog : IAuditableEntity
 {
     [Key] public int Id { get; set; }

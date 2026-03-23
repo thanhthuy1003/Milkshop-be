@@ -1,11 +1,10 @@
-﻿using System.ComponentModel;
+using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using NET1814_MilkShop.Repositories.Data.Interfaces;
 
 namespace NET1814_MilkShop.Repositories.Data.Entities;
 
-[Table("Units")]
 public class Unit : IAuditableEntity
 {
     [Key] public int Id { get; set; }
@@ -18,7 +17,9 @@ public class Unit : IAuditableEntity
 
     [Column("gram")] public int Gram { get; set; }
 
-    [DefaultValue(false)] public bool IsActive { get; set; }
+    [DefaultValue(false)]
+    [Column("is_active")]
+    public bool IsActive { get; set; }
 
     [Column("created_at", TypeName = "datetime2")]
     public DateTime CreatedAt { get; set; }
